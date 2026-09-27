@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Mail, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MessageCircle, MessageSquare } from 'lucide-react';
 import { Vendor, DEFAULT_SHOP_CUSTOMIZATION } from '../../types';
 
 interface ContactBarProps {
@@ -36,6 +36,15 @@ export const ContactBar: React.FC<ContactBarProps> = ({ vendor, onLogEvent }) =>
     onLogEvent(vendor.id, 'call_click');
     const directPhone = cust.phone_button?.phone_number || vendor.whatsapp;
     window.location.href = `tel:${directPhone.replace(/[^0-9+]/g, '')}`;
+  };
+
+  const handleSms = () => {
+    onLogEvent(vendor.id, 'message_click');
+    const directPhone = (cust.phone_button?.phone_number || vendor.whatsapp).replace(/[^0-9+]/g, '');
+    const body = encodeURIComponent(
+      `Hi ${vendor.shop_name} (${vendor.stall_number}), I found your shop on Azam Market Online. I'd like to ask about wholesale fabric pricing.`
+    );
+    window.location.href = `sms:${directPhone}?&body=${body}`;
   };
 
   const primaryColor = cust.theme_color || '#0F5C3A';
@@ -80,6 +89,17 @@ export const ContactBar: React.FC<ContactBarProps> = ({ vendor, onLogEvent }) =>
             >
               <Phone className="w-4 h-4" />
               <span>{cust.phone_button?.custom_label || 'Call Stall'}</span>
+            </button>
+          )}
+
+          {/* SMS Button */}
+          {cust.phone_button?.enabled && cust.phone_button?.show_in_sticky_bar !== false && (
+            <button
+              onClick={handleSms}
+              className="hidden sm:flex bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold py-2.5 px-4 rounded-xl border border-purple-200 items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>SMS</span>
             </button>
           )}
 

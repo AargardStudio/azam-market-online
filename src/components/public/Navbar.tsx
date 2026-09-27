@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Search, ShieldCheck, Store, LayoutDashboard, SlidersHorizontal, ChevronDown, Award, ArrowRight } from 'lucide-react';
+import { Search, ShieldCheck, Store, SlidersHorizontal, ChevronDown, Award, ArrowRight, Languages } from 'lucide-react';
 import { Market } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 
 interface NavbarProps {
   markets: Market[];
@@ -14,7 +15,6 @@ interface NavbarProps {
   verifiedOnly: boolean;
   onToggleVerifiedOnly: () => void;
   onOpenCeoMemoir?: () => void;
-  onOpenDownloadModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,10 +28,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   verifiedOnly,
   onToggleVerifiedOnly,
   onOpenCeoMemoir,
-  onOpenDownloadModal,
 }) => {
   const [showMarketMenu, setShowMarketMenu] = useState(false);
   const activeMarketObj = markets.find(m => m.slug === currentMarket) || markets[0];
+  const { lang, setLang, t } = useLanguage();
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-xs">
@@ -47,27 +47,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div className="flex items-center gap-3 text-[11px] text-emerald-100">
             {onOpenCeoMemoir && (
-              <button 
+              <button
                 onClick={onOpenCeoMemoir}
                 className="hover:text-white font-medium cursor-pointer text-[#C9952A]"
               >
-                📜 CEO Memoir
+                📜 About Aargard
               </button>
             )}
-            {onOpenDownloadModal && (
-              <button 
-                onClick={onOpenDownloadModal}
-                className="hover:text-white font-bold cursor-pointer bg-emerald-800/80 hover:bg-emerald-700 px-2 py-0.5 rounded text-white"
-              >
-                💾 Export Code (.ZIP)
-              </button>
-            )}
-            <button 
-              onClick={() => onNavigateView('admin_dashboard')}
-              className="hover:text-white underline font-medium cursor-pointer"
-            >
-              Admin Suite →
-            </button>
           </div>
         </div>
       </div>
@@ -138,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search shops, lawn, silk, velvet, stall numbers..."
+                placeholder={t('nav.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F5C3A] focus:bg-white transition-all"
@@ -157,6 +143,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Navigation Actions */}
         <div className="flex items-center gap-2">
+          {/* EN / اردو Language Toggle */}
+          <button
+            onClick={() => setLang(lang === 'en' ? 'ur' : 'en')}
+            title="Switch language / زبان تبدیل کریں"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Languages className="w-3.5 h-3.5 text-[#0F5C3A]" />
+            <span>{lang === 'en' ? 'اردو' : 'EN'}</span>
+          </button>
+
           {currentView === 'directory' && (
             <button
               onClick={onToggleVerifiedOnly}
@@ -167,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Award className="w-3.5 h-3.5 text-[#C9952A]" />
-              <span>Verified Only</span>
+              <span>{t('nav.verifiedOnly')}</span>
             </button>
           )}
 
@@ -176,15 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#E8F5EE] text-[#0F5C3A] hover:bg-[#0F5C3A] hover:text-white transition-all cursor-pointer shadow-2xs"
           >
             <Store className="w-4 h-4" />
-            <span>Vendor Portal</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateView('admin_dashboard')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#111827] text-white hover:bg-black transition-all cursor-pointer shadow-2xs"
-          >
-            <LayoutDashboard className="w-4 h-4 text-[#C9952A]" />
-            <span className="hidden sm:inline">Aargard Admin</span>
+            <span>{t('nav.vendorPortal')}</span>
           </button>
         </div>
       </div>

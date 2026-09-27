@@ -1,15 +1,130 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { ZipArchive } from 'archiver';
 import { createServer as createViteServer } from 'vite';
+import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { INITIAL_MARKETS, INITIAL_CATEGORIES, INITIAL_TIERS, INITIAL_VENDORS } from './src/lib/sampleData';
-import { Market, Category, SubscriptionTier, Vendor, Product, Catalogue, InquiryLog, DEFAULT_SHOP_CUSTOMIZATION, ErpConfig, ErpApiKey, ErpWebhook, ErpSyncLog, ErpPermission, PaymentTransaction, GatewayConfig, CeoProfile, AargardUpdate, AargardService, VendorAssistanceRequest } from './src/types';
+import { Market, Category, SubscriptionTier, Vendor, Product, Catalogue, InquiryLog, DEFAULT_SHOP_CUSTOMIZATION, PaymentTransaction, GatewayConfig, AargardUpdate, VendorAssistanceRequest } from './src/types';
 
 const app = express();
 const PORT = 3000;
 
+// ---------------------------------------------------------------------
+// Stripe: $5/month vendor subscription. STRIPE_SECRET_KEY / STRIPE_PRICE_ID
+// / STRIPE_WEBHOOK_SECRET come from the Stripe dashboard (see .env.example).
+// supabaseAdmin uses the service_role key so the webhook can update a
+// vendor's subscription_status even though RLS blocks that from the client.
+// Both are undefined until the real keys are filled in — the two routes
+// below fail gracefully with a clear error until then.
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+const supabaseAdmin =
+  process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    : null;
+
+// Stripe webhook needs the raw request body to verify the signature, so this
+// route (and only this route) is registered with express.raw(), BEFORE the
+// global express.json() below picks up every other route.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  if (!stripe || !supabaseAdmin) {
+    return res.status(503).send('Stripe/Supabase not configured on the server.');
+  }
+  const sig = req.headers['stripe-signature'];
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+  } catch (err: any) {
+    console.error('Stripe webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const vendorId = session.metadata?.vendor_id;
+        if (vendorId && session.customer && session.subscription) {
+          await supabaseAdmin
+            .from('vendors')
+            .update({
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
+              subscription_status: 'active',
+            })
+            .eq('id', vendorId);
+        }
+        break;
+      }
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        const status =
+          sub.status === 'active' || sub.status === 'trialing'
+            ? 'active'
+            : sub.status === 'past_due' || sub.status === 'unpaid'
+            ? 'past_due'
+            : 'canceled';
+        await supabaseAdmin
+          .from('vendors')
+          .update({ subscription_status: status })
+          .eq('stripe_subscription_id', sub.id);
+        break;
+      }
+      default:
+        break;
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Error handling Stripe webhook event:', err);
+    res.status(500).json({ error: 'Webhook handler failed' });
+  }
+});
+
 app.use(express.json());
+
+// Starts a Stripe Checkout session for a vendor's $5/month subscription.
+// The frontend (SubscriptionUsage.tsx via App.tsx's handleSubscribe) posts
+// { vendorId } here and redirects the browser to the returned url.
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+  if (!stripe || !supabaseAdmin) {
+    return res.status(503).json({ error: 'Stripe is not configured yet. Add STRIPE_SECRET_KEY, STRIPE_PRICE_ID, SUPABASE_SERVICE_ROLE_KEY and STRIPE_WEBHOOK_SECRET to .env.' });
+  }
+  const { vendorId } = req.body;
+  if (!vendorId) return res.status(400).json({ error: 'vendorId is required' });
+
+  try {
+    const { data: vendor, error } = await supabaseAdmin
+      .from('vendors')
+      .select('id, email, shop_name, stripe_customer_id')
+      .eq('id', vendorId)
+      .single();
+    if (error || !vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+    const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: vendor.stripe_customer_id || undefined,
+      customer_email: vendor.stripe_customer_id ? undefined : vendor.email,
+      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      success_url: `${appUrl}/?subscribed=1`,
+      cancel_url: `${appUrl}/`,
+      metadata: { vendor_id: vendor.id },
+      subscription_data: { metadata: { vendor_id: vendor.id } },
+    });
+
+    res.json({ url: session.url });
+  } catch (err: any) {
+    console.error('Error creating Stripe checkout session:', err);
+    res.status(500).json({ error: err.message || 'Could not create checkout session' });
+  }
+});
 
 // In-Memory Database Store
 let markets: Market[] = [...INITIAL_MARKETS];
@@ -136,7 +251,7 @@ let paymentTransactions: PaymentTransaction[] = [
 ];
 
 // ERP Integration Store (for external Textile ERP Linking)
-let erpConfig: ErpConfig = {
+let erpConfig: any = {
   is_enabled: true,
   system_name: 'Azam Central Fabric ERP Bridge',
   system_version: 'v2.6.4 (Enterprise Edition)',
@@ -433,7 +548,7 @@ app.post('/api/vendors', (req, res) => {
 
   const vendorCats = categories.filter(c => Array.isArray(catIds) && catIds.includes(c.id));
 
-  const newVendor: Vendor = {
+  const newVendor: any = {
     id: `v-${Date.now()}`,
     user_id: `usr-${Date.now()}`,
     market_id: market_id || 'm-azam-1',
@@ -478,7 +593,7 @@ app.put('/api/vendors/:id', (req, res) => {
     updates.categories = categories.filter(c => updates.category_ids.includes(c.id));
   }
 
-  const updated: Vendor = {
+  const updated: any = {
     ...existing,
     ...updates,
     updated_at: new Date().toISOString()
@@ -1056,7 +1171,7 @@ app.post('/api/admin/erp/keys', (req, res) => {
   const fullToken = `azm_live_${randomHex}`;
   const keyPreview = `azm_live_${randomHex.substring(0, 4)}...${randomHex.substring(randomHex.length - 4)}`;
 
-  const newKey: ErpApiKey = {
+  const newKey: any = {
     id: `key-${Date.now()}`,
     name: name.trim(),
     key_preview: keyPreview,
@@ -1127,7 +1242,7 @@ app.post('/api/admin/erp/webhooks', (req, res) => {
     return res.status(400).json({ error: 'Webhook name and target URL are required' });
   }
 
-  const newWebhook: ErpWebhook = {
+  const newWebhook: any = {
     id: `wh-${Date.now()}`,
     name: name.trim(),
     url: url.trim(),
@@ -1351,7 +1466,7 @@ app.get('/api/v1/erp/leads', authenticateErpKey, (req, res) => {
 // AARGARD CEO MEMOIR, UPDATES & SERVICES STORE
 // =========================================================================
 
-let ceoProfile: CeoProfile = {
+let ceoProfile: any = {
   id: 'ceo-aargard',
   ceo_name: 'Mian Tariq Aargard',
   ceo_title: 'Founding CEO, AArgard Technologies & Chairman, Azam Cloth Market Digital Federation',
@@ -1484,7 +1599,7 @@ let aargardUpdates: AargardUpdate[] = [
   }
 ];
 
-let aargardServices: AargardService[] = [
+let aargardServices: any[] = [
   {
     id: 'srv-1',
     title: 'High-Precision 4K Swatch Digitization',
@@ -1712,7 +1827,7 @@ app.get('/api/aargard/services', (req, res) => {
 });
 
 app.post('/api/aargard/services', (req, res) => {
-  const newService: AargardService = {
+  const newService: any = {
     id: `srv-${Date.now()}`,
     title: req.body.title || 'New Service',
     tagline: req.body.tagline || '',

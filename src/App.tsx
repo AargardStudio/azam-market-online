@@ -24,16 +24,12 @@ import { PendingQueue } from './components/admin/PendingQueue';
 import { CategoryManager } from './components/admin/CategoryManager';
 import { MarketManager } from './components/admin/MarketManager';
 import { TierManager } from './components/admin/TierManager';
-import { ErpIntegrationManager } from './components/admin/ErpIntegrationManager';
 import { MasterShopControlCenter } from './components/admin/MasterShopControlCenter';
-import { PaymentGatewayManager } from './components/admin/PaymentGatewayManager';
-import { AargardControlCenter } from './components/admin/AargardControlCenter';
 import { VendorUpdateLog } from './components/vendor/VendorUpdateLog';
 import { Footer } from './components/public/Footer';
-import { ProjectDownloadModal } from './components/common/ProjectDownloadModal';
-import { CeoMemoirModal } from './components/public/CeoMemoirModal';
 import { VendorLogin } from './components/auth/VendorLogin';
 import { AdminLogin } from './components/auth/AdminLogin';
+import { LanguageProvider } from './lib/i18n';
 
 export default function App() {
   // Data States
@@ -54,7 +50,7 @@ export default function App() {
   const [vendorAnalytics, setVendorAnalytics] = useState<VendorAnalytics | null>(null);
 
   // Admin Portal State
-  const [adminTab, setAdminTab] = useState<'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'erp' | 'payments' | 'aargard'>('master_control');
+  const [adminTab, setAdminTab] = useState<'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets'>('master_control');
 
   // Directory Filters State
   const [currentMarket, setCurrentMarket] = useState<string>('azam-cloth-market');
@@ -71,8 +67,6 @@ export default function App() {
   const [showVendorLogin, setShowVendorLogin] = useState<boolean>(false);
   const [showAdminLogin, setShowAdminLogin] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
-  const [showCeoMemoirModal, setShowCeoMemoirModal] = useState<boolean>(false);
 
   // ---------------------------------------------------------------------
   // Supabase Auth bridge: restores an admin/vendor session on page load
@@ -280,6 +274,16 @@ export default function App() {
 
   useEffect(() => {
     fetchAllData();
+  }, []);
+
+  // Admin sign-in is reached only via a direct URL (e.g. /admin), not a
+  // public nav link — keeps the storefront looking like a plain buyer
+  // directory to anyone just browsing it.
+  useEffect(() => {
+    if (window.location.pathname.replace(/\/+$/, '') === '/admin' && !isAdminAuthenticated) {
+      setShowAdminLogin(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch Vendor Analytics (last 30 days, from inquiry_logs) when active vendor changes
@@ -619,6 +623,44 @@ export default function App() {
     }
   };
 
+  // Starts a Stripe Checkout session for the vendor's $5/month subscription
+  // (trial gating / visibility is enforced by RLS server-side; this just
+  // sends the vendor to Stripe's hosted checkout page and back).
+  const [subscribeLoading, setSubscribeLoading] = useState(false);
+  const handleSubscribe = async (vendorId: string) => {
+    setSubscribeLoading(true);
+    try {
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Stripe checkout session error:', data?.error);
+        alert(data?.error || 'Could not start checkout. Please try again.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Could not reach the payments server. Please try again.');
+    } finally {
+      setSubscribeLoading(false);
+    }
+  };
+
+  // If Stripe redirected back with ?subscribed=1, refetch so the dashboard
+  // reflects the new subscription_status once the webhook has landed.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscribed') === '1') {
+      fetchAllData();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleUpdateVendor = async (vendorId: string, data: Partial<Vendor>) => {
     try {
       const { categories: _categories, products: _products, catalogues: _catalogues, tier: _tier, market: _market, customization: _customization, ...columnData } = data as any;
@@ -725,8 +767,7 @@ export default function App() {
             }}
             verifiedOnly={verifiedOnly}
             onToggleVerifiedOnly={() => setVerifiedOnly(!verifiedOnly)}
-            onOpenCeoMemoir={() => setShowCeoMemoirModal(true)}
-            onOpenDownloadModal={() => setShowDownloadModal(true)}
+            onOpenCeoMemoir={() => window.open('https://aargard.com', '_blank')}
           />
 
           {currentView === 'directory' ? (
@@ -872,8 +913,7 @@ export default function App() {
                 setCurrentView('directory');
               }
             }}
-            onOpenCeoMemoir={() => setShowCeoMemoirModal(true)}
-            onOpenDownloadModal={() => setShowDownloadModal(true)}
+            onOpenCeoMemoir={() => window.open('https://aargard.com', '_blank')}
           />
         </>
       )}
@@ -952,7 +992,8 @@ export default function App() {
               <SubscriptionUsage
                 vendor={activeVendorInDashboard}
                 tiers={tiers}
-                onUpgradeTier={(vendorId, tierId) => handleUpdateVendorTier(vendorId, tierId)}
+                onSubscribe={handleSubscribe}
+                subscribeLoading={subscribeLoading}
               />
             )}
 
@@ -1054,37 +1095,11 @@ export default function App() {
                 onAddMarket={handleAddMarket}
               />
             )}
-
-            {adminTab === 'erp' && (
-              <ErpIntegrationManager />
-            )}
-
-            {adminTab === 'payments' && (
-              <PaymentGatewayManager vendors={vendors} />
-            )}
-
-            {adminTab === 'aargard' && (
-              <AargardControlCenter />
-            )}
           </main>
         </div>
       )}
 
       {/* MODALS */}
-
-      {/* CEO Memoir & Updates Modal */}
-      <CeoMemoirModal
-        isOpen={showCeoMemoirModal}
-        onClose={() => setShowCeoMemoirModal(false)}
-        onOpenDownloadProject={() => setShowDownloadModal(true)}
-      />
-
-      {/* Download Project Source Code Modal */}
-      <ProjectDownloadModal
-        isOpen={showDownloadModal}
-        onClose={() => setShowDownloadModal(false)}
-        onOpenCeoMemoir={() => setShowCeoMemoirModal(true)}
-      />
 
       {/* PDF Catalogue Viewer Modal */}
       {activeCatalogue && (

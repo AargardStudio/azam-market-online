@@ -11,11 +11,14 @@ export interface Market {
 export interface Category {
   id: string;
   name: string;
+  name_ur?: string; // Urdu display name
   slug: string;
   icon: string;
   market_id?: string;
   vendor_count: number;
 }
+
+export type Language = 'en' | 'ur';
 
 export interface SubscriptionTier {
   id: string;
@@ -270,6 +273,10 @@ export interface Vendor {
   whatsapp: string;
   email: string;
   website?: string;
+  shop_address?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
+  google_url?: string; // Google Maps / Business Profile link
   tags: string[];
   categories: Category[];
   is_verified: boolean;
@@ -288,6 +295,25 @@ export interface Vendor {
   tier?: SubscriptionTier;
   market?: Market;
   customization?: ShopCustomization;
+  verification?: VendorVerification;
+
+  // Subscription (Stripe, $5/mo flat, 30-day free trial)
+  subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled';
+  trial_ends_at: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+}
+
+// CNIC (Pakistan national ID) + NTN (tax number). Kept off the main Vendor
+// shape's public columns on purpose -- see supabase/migrations/
+// 20260927000400_vendor_signup_fields.sql for why this lives in its own
+// RLS-locked table (only the owning vendor or an admin can ever read it).
+export interface VendorVerification {
+  vendor_id: string;
+  cnic?: string;
+  ntn?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface InquiryLog {
@@ -332,65 +358,6 @@ export interface VendorAnalytics {
   messagesMoM: number;
 }
 
-// ERP Integration Types
-export type ErpPermission =
-  | 'read:vendors'
-  | 'read:products'
-  | 'write:products'
-  | 'write:inventory'
-  | 'read:leads'
-  | 'admin:all';
-
-export interface ErpApiKey {
-  id: string;
-  name: string;
-  key_preview: string;
-  token?: string;
-  permissions: ErpPermission[];
-  created_at: string;
-  last_used_at?: string;
-  is_active: boolean;
-}
-
-export interface ErpWebhook {
-  id: string;
-  name: string;
-  url: string;
-  secret: string;
-  events: ('inquiry.created' | 'vendor.updated' | 'product.updated' | 'catalogue.downloaded')[];
-  is_active: boolean;
-  last_delivered_at?: string;
-  failure_count: number;
-}
-
-export interface ErpSyncLog {
-  id: string;
-  timestamp: string;
-  event: string;
-  direction: 'inbound' | 'outbound';
-  status: 'success' | 'failed' | 'in_progress';
-  records_count: number;
-  message: string;
-  payload_summary?: string;
-}
-
-export interface ErpConfig {
-  is_enabled: boolean;
-  system_name: string;
-  system_version?: string;
-  sync_mode: 'realtime' | 'batch_hourly' | 'batch_nightly' | 'manual';
-  base_api_url: string;
-  auto_sync_inventory: boolean;
-  auto_sync_pricing: boolean;
-  forward_whatsapp_leads: boolean;
-  rate_limit_per_minute: number;
-  ip_whitelist: string;
-  api_keys: ErpApiKey[];
-  webhooks: ErpWebhook[];
-  sync_logs: ErpSyncLog[];
-  last_successful_sync?: string;
-}
-
 // Payment Gateway & Transaction Types
 export type PaymentGatewayId = 'jazzcash' | 'payfast' | 'keenu' | 'stripe';
 
@@ -427,44 +394,8 @@ export interface GatewayConfig {
 export type PaymentGateway = GatewayConfig;
 
 // =========================================================================
-// AARGARD CEO MEMOIR, UPDATES & PLATFORM SERVICES TYPES
+// PLATFORM UPDATES & VENDOR ASSISTANCE TYPES
 // =========================================================================
-
-export interface CeoMilestone {
-  year: string;
-  title: string;
-  description: string;
-  stat?: string;
-}
-
-export interface CeoProfile {
-  id: string;
-  ceo_name: string;
-  ceo_title: string;
-  organization: string;
-  avatar_url: string;
-  signature_text: string;
-  founded_year: number;
-  banner_image_url: string;
-  memoir_title: string;
-  memoir_subtitle: string;
-  memoir_paragraphs: string[];
-  core_quote: string;
-  quote_author: string;
-  quote_subtext: string;
-  vision_pillars: {
-    title: string;
-    description: string;
-    icon: string;
-  }[];
-  milestones: CeoMilestone[];
-  social_links?: {
-    linkedin?: string;
-    twitter?: string;
-    whatsapp?: string;
-  };
-  updated_at: string;
-}
 
 export type UpdateCategory = 'feature' | 'logistics' | 'security' | 'market_policy' | 'payment' | 'vendor_guide';
 
@@ -483,24 +414,6 @@ export interface AargardUpdate {
   is_published: boolean;
   importance: 'normal' | 'high' | 'critical';
   created_at: string;
-}
-
-export type ServiceCategory = 'digitization' | 'logistics' | 'payments' | 'media' | 'enterprise' | 'legal';
-
-export interface AargardService {
-  id: string;
-  title: string;
-  tagline: string;
-  category: ServiceCategory;
-  description: string;
-  features: string[];
-  turnaround_time: string;
-  pricing_tier: string;
-  icon: string;
-  is_active: boolean;
-  is_featured: boolean;
-  contact_whatsapp: string;
-  sort_order: number;
 }
 
 export type AssistanceCategory =

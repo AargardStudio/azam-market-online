@@ -77,7 +77,7 @@ export const INITIAL_TIERS: SubscriptionTier[] = [
   },
 ];
 
-export const INITIAL_VENDORS: Vendor[] = [
+export const INITIAL_VENDORS: any[] = [
   {
     id: 'v-raza-silk',
     user_id: 'usr-raza',

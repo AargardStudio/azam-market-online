@@ -39,9 +39,8 @@ import {
   Building,
   Check,
 } from 'lucide-react';
-import { Vendor, Product, Catalogue, DEFAULT_SHOP_CUSTOMIZATION, PaymentTransaction } from '../../types';
+import { Vendor, Product, Catalogue, DEFAULT_SHOP_CUSTOMIZATION } from '../../types';
 import { ContactBar } from './ContactBar';
-import { PaymentCheckoutModal } from '../common/PaymentCheckoutModal';
 
 interface VendorShopProps {
   vendor: Vendor;
@@ -62,11 +61,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'catalogues'>('overview');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentPurpose, setPaymentPurpose] = useState<'sample_booking_deposit' | 'wholesale_order'>('sample_booking_deposit');
-  const [paymentAmount, setPaymentAmount] = useState(5000);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
-  const [lastTx, setLastTx] = useState<PaymentTransaction | null>(null);
 
   // Extract customization settings with fallback
   const cust = vendor.customization || DEFAULT_SHOP_CUSTOMIZATION;
@@ -104,6 +99,15 @@ export const VendorShop: React.FC<VendorShopProps> = ({
       `Hi ${vendor.shop_name} (${vendor.stall_number}),\n\nI am contacting you from the Azam Market Online directory regarding your wholesale fabric collections.`
     );
     window.location.href = `mailto:${vendor.email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleSmsInquiry = () => {
+    onLogEvent(vendor.id, 'message_click');
+    const directNum = (cust.phone_button?.phone_number || vendor.whatsapp).replace(/[^0-9+]/g, '');
+    const body = encodeURIComponent(
+      `Hi ${vendor.shop_name} (${vendor.stall_number}), I found your shop on Azam Market Online. I'd like to ask about wholesale fabric pricing.`
+    );
+    window.location.href = `sms:${directNum}?&body=${body}`;
   };
 
   // Background tone styling
@@ -250,6 +254,16 @@ export const VendorShop: React.FC<VendorShopProps> = ({
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>{cust.whatsapp_button?.custom_label || 'WhatsApp Order'}</span>
+              </button>
+            )}
+
+            {cust.hero_show_phone && cust.phone_button?.enabled && (
+              <button
+                onClick={handleSmsInquiry}
+                className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 text-purple-600" />
+                <span>Send SMS</span>
               </button>
             )}
 
@@ -891,24 +905,12 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                             <div>
                               <h3 className="font-serif text-lg font-bold text-gray-900 flex items-center gap-2">
                                 <Building className="w-5 h-5 text-emerald-700" />
-                                {block.custom_title || 'Wholesale Settlement & Payment Gateways'}
+                                {block.custom_title || 'Direct Bank & Wallet Details'}
                               </h3>
                               <p className="text-xs text-gray-500 mt-0.5">
-                                Official settlement channels authorized by {vendor.shop_name} for order deposits and thaan invoices.
+                                Settlement details shared by {vendor.shop_name} for buyers who arrange payment directly with the stall — contact them via WhatsApp or call first to confirm an order.
                               </p>
                             </div>
-
-                            <button
-                              onClick={() => {
-                                setPaymentPurpose('sample_booking_deposit');
-                                setPaymentAmount(7500);
-                                setShowPaymentModal(true);
-                              }}
-                              className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer transition-all"
-                            >
-                              <Wallet className="w-4 h-4" />
-                              <span>Pay Online / Deposit</span>
-                            </button>
                           </div>
 
                           {/* Gateway Badges */}
@@ -976,14 +978,6 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                             </div>
                           </div>
 
-                          {lastTx && (
-                            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Check className="w-4 h-4 text-emerald-700" />
-                                <span>Recent Payment Confirmed: <strong>₨{lastTx.amount_pkr.toLocaleString()}</strong> via {lastTx.gateway.toUpperCase()} (Ref: {lastTx.reference_id})</span>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
 
@@ -1612,20 +1606,6 @@ export const VendorShop: React.FC<VendorShopProps> = ({
           </div>
         </div>
       )}
-
-      {/* 8. PAYMENT & SETTLEMENT MODAL (JazzCash, PayFast, Keenu, Stripe) */}
-      <PaymentCheckoutModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        vendorId={vendor.id}
-        vendorName={vendor.shop_name}
-        purpose={paymentPurpose}
-        defaultAmountPkr={paymentAmount}
-        onPaymentSuccess={(tx) => {
-          setLastTx(tx);
-          setShowPaymentModal(false);
-        }}
-      />
 
       {/* 9. FIXED STICKY CONTACT BAR AT PAGE BOTTOM */}
       <ContactBar vendor={vendor} onLogEvent={onLogEvent} />

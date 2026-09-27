@@ -1,5 +1,6 @@
 import React from 'react';
 import { Category } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 
 interface CategoryGridProps {
   categories: Category[];
@@ -12,15 +13,16 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   selectedCategory,
   onSelectCategory,
 }) => {
+  const { lang, t } = useLanguage();
   return (
     <div className="my-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="font-serif text-xl font-bold text-gray-900">
-            Wholesale Fabric Categories
+            {t('category.browse')}
           </h2>
           <p className="text-xs text-gray-500">
-            Select a fabric category to filter stall directory
+            Select a business category to filter the stall directory
           </p>
         </div>
         {selectedCategory && (
@@ -47,8 +49,8 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
               }`}
             >
               <span className="text-2xl">{cat.icon || '🧵'}</span>
-              <span className="text-xs font-semibold leading-tight line-clamp-1">
-                {cat.name}
+              <span className="text-xs font-semibold leading-tight line-clamp-2">
+                {lang === 'ur' && cat.name_ur ? cat.name_ur : cat.name}
               </span>
               <span
                 className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${

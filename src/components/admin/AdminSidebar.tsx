@@ -1,10 +1,10 @@
 import React from 'react';
-import { LayoutDashboard, Users, UserPlus, Clock, ShieldCheck, Tag, Map, ArrowLeft, Building, CreditCard, Server, Cpu, Sliders, Sparkles, Wallet, BookOpen, Award } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Clock, Tag, Map, ArrowLeft, Sliders, CreditCard } from 'lucide-react';
 
 interface AdminSidebarProps {
   pendingCount: number;
-  activeTab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'erp' | 'payments' | 'aargard';
-  onSelectTab: (tab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'erp' | 'payments' | 'aargard') => void;
+  activeTab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets';
+  onSelectTab: (tab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets') => void;
   onExitToDirectory: () => void;
 }
 
@@ -159,64 +159,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <span>Markets Expansion</span>
           </button>
 
-          <button
-            onClick={() => onSelectTab('payments')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'payments'
-                ? 'bg-[#C9952A] text-gray-900 font-bold shadow-md'
-                : 'text-gray-300 hover:bg-gray-800'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              <span>Payment Gateways</span>
-            </div>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              JazzCash / Stripe
-            </span>
-          </button>
-
-          <div className="pt-3 pb-1 border-t border-gray-800 text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3">
-            External Systems & API
-          </div>
-
-          <button
-            onClick={() => onSelectTab('erp')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'erp'
-                ? 'bg-[#C9952A] text-gray-900 font-bold shadow-md'
-                : 'text-gray-300 hover:bg-gray-800'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Server className="w-4 h-4 text-amber-400" />
-              <span>ERP Integration</span>
-            </div>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              API Hub
-            </span>
-          </button>
-
-          <div className="pt-3 pb-1 border-t border-gray-800 text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3">
-            Federation & Leadership
-          </div>
-
-          <button
-            onClick={() => onSelectTab('aargard')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'aargard'
-                ? 'bg-[#C9952A] text-gray-900 font-bold shadow-md'
-                : 'text-gray-300 hover:bg-gray-800'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Award className="w-4 h-4 text-[#C9952A]" />
-              <span>CEO Memoir & Services</span>
-            </div>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-              AArgard Hub
-            </span>
-          </button>
         </nav>
       </div>
 
