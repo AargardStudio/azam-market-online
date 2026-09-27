@@ -1,0 +1,6 @@
+{
+  "name": "Azam Market Online",
+  "description": "B2B Wholesale Textile & Fabric Marketplace for Lahore's Azam Cloth Market",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

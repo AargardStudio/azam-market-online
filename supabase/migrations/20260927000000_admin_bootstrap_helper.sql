@@ -1,0 +1,28 @@
+-- =========================================================================
+-- Azam Market Online — 11: Admin bootstrap helper
+-- =========================================================================
+-- admin_users has no client INSERT policy (see migration 09) on purpose --
+-- nobody should be able to make themselves an admin from the browser. That
+-- means the FIRST admin has to be created from the SQL Editor / service
+-- role, one time. This is that one-time step, not something the app calls.
+--
+-- HOW TO CREATE YOUR FIRST ADMIN (do this once per environment):
+--
+-- 1. Supabase Dashboard -> Authentication -> Users -> "Add user"
+--    Create the admin's login with an email + password (this is what they
+--    type into the Aargard Admin Login screen). Copy the generated User UID.
+--
+-- 2. Run this, filling in the UID and details from step 1:
+--
+--   insert into admin_users (user_id, name, email, role)
+--   values (
+--     '00000000-0000-0000-0000-000000000000',  -- the User UID from step 1
+--     'Hamza Sheikh',
+--     'hamza@aargard.com',
+--     'super_admin'
+--   );
+--
+-- Every admin after the first can be added the same way, or by a
+-- super_admin from inside the app once that flow is built (admin_users
+-- write access is already scoped to super_admin via RLS policy
+-- "admin_users_super_admin_write").

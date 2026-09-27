@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --emerald: #0F5C3A;
+    --emerald-mid: #1A7A4F;
+    --emerald-light: #E8F5EE;
+    --gold: #C9952A;
+    --gold-light: #FDF6E7;
+    --ink: #111827;
+    --ink-muted: #6B7280;
+    --surface: #F9FAFB;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --red: #DC2626;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--surface);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom scrollbar for horizontal product/category cards */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
