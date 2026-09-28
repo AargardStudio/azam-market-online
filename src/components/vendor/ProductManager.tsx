@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, Image as ImageIcon, AlertCircle, Upload, X, Camera, Link, Sparkles, RefreshCw } from 'lucide-react';
 import { Product, Vendor } from '../../types';
+import { FABRIC_TYPES } from '../../lib/fabricTypes';
+import { useLanguage } from '../../lib/i18n';
 
 interface ProductManagerProps {
   vendor: Vendor;
@@ -27,8 +29,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  const { lang } = useLanguage();
   const [name, setName] = useState('');
   const [fabricType, setFabricType] = useState('');
+  const [showCustomFabric, setShowCustomFabric] = useState(false);
   const [priceRange, setPriceRange] = useState('');
   const [moq, setMoq] = useState('');
   const [description, setDescription] = useState('');
@@ -73,10 +77,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     }
   };
 
+  const isKnownFabric = (val: string) =>
+    FABRIC_TYPES.some((f) => f.name.toLowerCase() === val.toLowerCase());
+
   const openAddModal = () => {
     setEditingProduct(null);
     setName('');
-    setFabricType('Pure Silk');
+    setFabricType('Lawn');
+    setShowCustomFabric(false);
     setPriceRange('₨800–1,200/m');
     setMoq('50 metres');
     setDescription('');
@@ -90,6 +98,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setEditingProduct(p);
     setName(p.name);
     setFabricType(p.fabric_type);
+    setShowCustomFabric(!isKnownFabric(p.fabric_type));
     setPriceRange(p.price_range);
     setMoq(p.moq);
     setDescription(p.description);
@@ -251,15 +260,40 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Fabric Type</label>
-                  <input
-                    type="text"
+                  <label className="font-bold text-gray-700 block mb-1">Fabric / Clothing Type</label>
+                  <select
                     required
-                    value={fabricType}
-                    onChange={(e) => setFabricType(e.target.value)}
-                    placeholder="e.g. Pure Silk, 80x80 Lawn"
+                    value={showCustomFabric ? '__other__' : fabricType}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__other__') {
+                        setShowCustomFabric(true);
+                        setFabricType('');
+                      } else {
+                        setShowCustomFabric(false);
+                        setFabricType(val);
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
-                  />
+                  >
+                    <option value="" disabled>Select a type</option>
+                    {FABRIC_TYPES.map((f) => (
+                      <option key={f.slug} value={f.name}>
+                        {lang === 'ur' ? f.name_ur : f.name}
+                      </option>
+                    ))}
+                    <option value="__other__">Other (type your own)</option>
+                  </select>
+                  {showCustomFabric && (
+                    <input
+                      type="text"
+                      required
+                      value={fabricType}
+                      onChange={(e) => setFabricType(e.target.value)}
+                      placeholder="e.g. Pure Silk, 80x80 Lawn"
+                      className="w-full mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                    />
+                  )}
                 </div>
 
                 <div>

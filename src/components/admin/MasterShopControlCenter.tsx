@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { FABRIC_TYPES } from '../../lib/fabricTypes';
 import {
   Store,
   Search,
@@ -105,6 +106,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
   const [showAddProductModal, setShowAddProductModal] = useState<boolean>(false);
   const [newProductName, setNewProductName] = useState('');
   const [newProductFabric, setNewProductFabric] = useState('Lawn 90/70');
+  const [showCustomStallFabric, setShowCustomStallFabric] = useState(true);
   const [newProductPrice, setNewProductPrice] = useState('₨950–1,250/m');
   const [newProductMoq, setNewProductMoq] = useState('50 metres');
   const [newProductImage, setNewProductImage] = useState('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80');
@@ -1429,13 +1431,35 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
 
                         <div>
                           <label className="font-bold text-gray-700 block mb-1">Fabric Category</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Lawn, Khaddar, Silk"
-                            value={newProductFabric}
-                            onChange={(e) => setNewProductFabric(e.target.value)}
+                          <select
+                            value={showCustomStallFabric ? '__other__' : newProductFabric}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '__other__') {
+                                setShowCustomStallFabric(true);
+                                setNewProductFabric('');
+                              } else {
+                                setShowCustomStallFabric(false);
+                                setNewProductFabric(val);
+                              }
+                            }}
                             className="w-full p-2 bg-white border border-gray-200 rounded-lg"
-                          />
+                          >
+                            <option value="" disabled>Select a type</option>
+                            {FABRIC_TYPES.map((f) => (
+                              <option key={f.slug} value={f.name}>{f.name}</option>
+                            ))}
+                            <option value="__other__">Other (type your own)</option>
+                          </select>
+                          {showCustomStallFabric && (
+                            <input
+                              type="text"
+                              placeholder="e.g. Lawn, Khaddar, Silk"
+                              value={newProductFabric}
+                              onChange={(e) => setNewProductFabric(e.target.value)}
+                              className="w-full mt-2 p-2 bg-white border border-gray-200 rounded-lg"
+                            />
+                          )}
                         </div>
 
                         <div>
