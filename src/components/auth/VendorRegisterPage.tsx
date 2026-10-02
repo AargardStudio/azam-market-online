@@ -13,10 +13,11 @@ import {
   Award,
   Mail,
 } from 'lucide-react';
-import { Category, SubscriptionTier } from '../../types';
+import { Category, SubscriptionTier, Market } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 
 interface VendorRegisterPageProps {
+  markets: Market[];
   categories: Category[];
   tiers: SubscriptionTier[];
   onExit: () => void;
@@ -26,6 +27,7 @@ const slugify = (s: string) =>
   `${s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}-${Date.now().toString(36)}`;
 
 export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
+  markets,
   categories,
   tiers,
   onExit,
@@ -35,6 +37,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const [email, setEmail] = useState('');
 
   // Registration details
+  const [marketId, setMarketId] = useState('');
   const [shopAddress, setShopAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -56,6 +59,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
 
   const sortedTiers = [...tiers].sort((a, b) => a.price_pkr - b.price_pkr);
   const effectiveTierId = tierId || sortedTiers[0]?.id || 't-basic';
+  const effectiveMarketId = marketId || markets[0]?.id || '';
 
   const toggleCategory = (id: string) => {
     setCategoryIds((prev) =>
@@ -69,17 +73,15 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
       setCatError('Select at least one fabric category.');
       return;
     }
+    if (!effectiveMarketId) {
+      setError('Please select which market your stall is in.');
+      return;
+    }
     setCatError('');
     setError('');
     setLoading(true);
 
     try {
-      const { data: market } = await supabase
-        .from('markets')
-        .select('id')
-        .eq('slug', 'azam-cloth-market')
-        .maybeSingle();
-
       const vendorId = crypto.randomUUID();
       const slug = slugify(shopName || 'stall');
 
@@ -89,7 +91,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
       // that blocked read entirely; we already have the id we generated.
       const { error: vendorErr } = await supabase.from('vendors').insert({
         id: vendorId,
-        market_id: market?.id,
+        market_id: effectiveMarketId,
         tier_id: effectiveTierId,
         slug,
         shop_name: shopName,
@@ -246,6 +248,33 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
           <p className="text-xs text-gray-500">
             Tell us about your business — your stall goes live after a quick Aargard review.
           </p>
+
+          {/* Market */}
+          <div>
+            <label className="font-bold text-gray-700 block mb-1.5 text-xs">
+              Market <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {markets.map((m) => {
+                const checked = effectiveMarketId === m.id;
+                return (
+                  <button
+                    type="button"
+                    key={m.id}
+                    onClick={() => setMarketId(m.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                      checked
+                        ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A]'
+                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="font-bold text-xs block truncate">{m.name}</span>
+                    <span className="text-[10px] text-gray-400">{m.city}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="sm:col-span-2">

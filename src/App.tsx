@@ -754,6 +754,7 @@ export default function App() {
   if (currentView === 'vendor_register') {
     return (
       <VendorRegisterPage
+        markets={markets}
         categories={categories}
         tiers={tiers}
         onExit={() => {
