@@ -53,13 +53,14 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const [googleUrl, setGoogleUrl] = useState('');
 
   const [catError, setCatError] = useState('');
+  const [marketError, setMarketError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const sortedTiers = [...tiers].sort((a, b) => a.price_pkr - b.price_pkr);
   const effectiveTierId = tierId || sortedTiers[0]?.id || 't-basic';
-  const effectiveMarketId = marketId || markets[0]?.id || '';
+  const effectiveMarketId = marketId;
 
   const toggleCategory = (id: string) => {
     setCategoryIds((prev) =>
@@ -69,15 +70,20 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let hasValidationError = false;
+    if (!effectiveMarketId) {
+      setMarketError('Select which market your stall is in.');
+      hasValidationError = true;
+    } else {
+      setMarketError('');
+    }
     if (categoryIds.length === 0) {
       setCatError('Select at least one fabric category.');
-      return;
+      hasValidationError = true;
+    } else {
+      setCatError('');
     }
-    if (!effectiveMarketId) {
-      setError('Please select which market your stall is in.');
-      return;
-    }
-    setCatError('');
+    if (hasValidationError) return;
     setError('');
     setLoading(true);
 
@@ -254,6 +260,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
             <label className="font-bold text-gray-700 block mb-1.5 text-xs">
               Market <span className="text-red-500">*</span>
             </label>
+            {marketError && <p className="text-red-600 text-[11px] mb-1.5">{marketError}</p>}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {markets.map((m) => {
                 const checked = effectiveMarketId === m.id;
