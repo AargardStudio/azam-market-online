@@ -11,6 +11,7 @@ interface NavbarProps {
   onSearchChange: (q: string) => void;
   currentView: 'directory' | 'vendor_dashboard' | 'admin_dashboard' | 'vendor_shop';
   onNavigateView: (view: 'directory' | 'vendor_dashboard' | 'admin_dashboard') => void;
+  onNavigateRegister: () => void;
   activeVendorSlug?: string;
   verifiedOnly: boolean;
   onToggleVerifiedOnly: () => void;
@@ -25,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearchChange,
   currentView,
   onNavigateView,
+  onNavigateRegister,
   verifiedOnly,
   onToggleVerifiedOnly,
   onOpenCeoMemoir,
@@ -166,6 +168,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{t('nav.verifiedOnly')}</span>
             </button>
           )}
+
+          <button
+            onClick={onNavigateRegister}
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#C9952A] text-white hover:bg-[#b3831f] transition-all cursor-pointer shadow-2xs"
+          >
+            <Store className="w-4 h-4" />
+            <span>Register My Stall</span>
+          </button>
 
           <button
             onClick={() => onNavigateView('vendor_dashboard')}

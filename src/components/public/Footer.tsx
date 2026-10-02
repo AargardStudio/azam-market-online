@@ -19,6 +19,7 @@ interface FooterProps {
   markets: Market[];
   categories: Category[];
   onNavigateView: (view: 'directory' | 'vendor_dashboard' | 'admin_dashboard') => void;
+  onNavigateRegister: () => void;
   onOpenCeoMemoir: () => void;
 }
 
@@ -26,6 +27,7 @@ export const Footer: React.FC<FooterProps> = ({
   markets,
   categories,
   onNavigateView,
+  onNavigateRegister,
   onOpenCeoMemoir,
 }) => {
   return (
@@ -170,15 +172,13 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li>
-                <a
-                  href={`https://wa.me/923004211985?text=${encodeURIComponent('Hello Azam Market Online, I want to onboard my stall at Azam Cloth Market.')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={onNavigateRegister}
                   className="hover:text-emerald-400 transition-colors text-left flex items-center gap-1 text-emerald-400 font-semibold"
                 >
                   <span>Register Wholesale Stall</span>
                   <ArrowUpRight className="w-3 h-3" />
-                </a>
+                </button>
               </li>
             </ul>
           </div>

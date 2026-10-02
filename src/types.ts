@@ -271,6 +271,8 @@ export interface Vendor {
   logo_url: string | null;
   cover_url: string | null;
   whatsapp: string;
+  phone?: string;
+  products_offered?: string;
   email: string;
   website?: string;
   shop_address?: string;

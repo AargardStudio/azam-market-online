@@ -28,6 +28,7 @@ import { MasterShopControlCenter } from './components/admin/MasterShopControlCen
 import { VendorUpdateLog } from './components/vendor/VendorUpdateLog';
 import { Footer } from './components/public/Footer';
 import { VendorLogin } from './components/auth/VendorLogin';
+import { VendorRegisterPage } from './components/auth/VendorRegisterPage';
 import { AdminLogin } from './components/auth/AdminLogin';
 import { LanguageProvider } from './lib/i18n';
 
@@ -41,7 +42,7 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
 
   // View Routing State
-  const [currentView, setCurrentView] = useState<'directory' | 'vendor_dashboard' | 'admin_dashboard' | 'vendor_shop'>('directory');
+  const [currentView, setCurrentView] = useState<'directory' | 'vendor_dashboard' | 'admin_dashboard' | 'vendor_shop' | 'vendor_register'>('directory');
   const [activeVendorSlug, setActiveVendorSlug] = useState<string | null>(null);
 
   // Vendor Portal State
@@ -280,8 +281,15 @@ export default function App() {
   // public nav link — keeps the storefront looking like a plain buyer
   // directory to anyone just browsing it.
   useEffect(() => {
-    if (window.location.pathname.replace(/\/+$/, '') === '/admin' && !isAdminAuthenticated) {
+    const path = window.location.pathname.replace(/\/+$/, '');
+    if (path === '/admin' && !isAdminAuthenticated) {
       setShowAdminLogin(true);
+    }
+    // Vendor self-registration also lives at its own direct URL rather
+    // than a public nav link that competes with the plain "Vendor Portal"
+    // login button -- reached via the dedicated CTA in the Navbar/Footer.
+    if (path === '/register') {
+      setCurrentView('vendor_register');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -740,6 +748,22 @@ export default function App() {
     );
   }
 
+  // Vendor self-registration -- its own full page at /register, not a
+  // modal, so it can hold the full account-creation + business-details
+  // flow without competing with the rest of the directory chrome.
+  if (currentView === 'vendor_register') {
+    return (
+      <VendorRegisterPage
+        categories={categories}
+        tiers={tiers}
+        onExit={() => {
+          window.history.replaceState({}, '', '/');
+          setCurrentView('directory');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* PUBLIC SURFACE (Directory or Single Shop) */}
@@ -764,6 +788,10 @@ export default function App() {
               } else {
                 setCurrentView('directory');
               }
+            }}
+            onNavigateRegister={() => {
+              window.history.pushState({}, '', '/register');
+              setCurrentView('vendor_register');
             }}
             verifiedOnly={verifiedOnly}
             onToggleVerifiedOnly={() => setVerifiedOnly(!verifiedOnly)}
@@ -912,6 +940,10 @@ export default function App() {
               } else {
                 setCurrentView('directory');
               }
+            }}
+            onNavigateRegister={() => {
+              window.history.pushState({}, '', '/register');
+              setCurrentView('vendor_register');
             }}
             onOpenCeoMemoir={() => window.open('https://aargard.com', '_blank')}
           />
@@ -1119,6 +1151,11 @@ export default function App() {
             setActiveVendorInDashboard(v);
             setShowVendorLogin(false);
             setCurrentView('vendor_dashboard');
+          }}
+          onGoToRegister={() => {
+            setShowVendorLogin(false);
+            window.history.pushState({}, '', '/register');
+            setCurrentView('vendor_register');
           }}
           onCancel={() => setShowVendorLogin(false)}
         />
