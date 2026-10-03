@@ -4,6 +4,7 @@ import { supabase } from './lib/supabaseClient';
 import { Navbar } from './components/public/Navbar';
 import { VendorHero } from './components/public/VendorHero';
 import { CategoryGrid } from './components/public/CategoryGrid';
+import { CategoryShopRows } from './components/public/CategoryShopRows';
 import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
@@ -816,6 +817,18 @@ export default function App() {
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}
                 />
+
+                {/* Horizontally Scrollable "Digital Shops" rows, one per category */}
+                {!selectedCategory && !searchQuery && (
+                  <CategoryShopRows
+                    categories={categories}
+                    vendors={activeVendors}
+                    onSelectVendor={handleOpenVendorShop}
+                    onOpenCatalogue={handleOpenCatalogueModal}
+                    onLogEvent={logEvent}
+                    onSelectCategory={setSelectedCategory}
+                  />
+                )}
 
                 {/* Featured Vendors Row */}
                 {featuredVendors.length > 0 && !selectedCategory && !searchQuery && (
