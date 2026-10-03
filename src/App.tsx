@@ -828,6 +828,10 @@ export default function App() {
                     onOpenCatalogue={handleOpenCatalogueModal}
                     onLogEvent={logEvent}
                     onSelectCategory={setSelectedCategory}
+                    onNavigateRegister={() => {
+                      window.history.pushState({}, '', '/register');
+                      setCurrentView('vendor_register');
+                    }}
                   />
                 )}
 
