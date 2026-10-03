@@ -5,6 +5,7 @@ import { Navbar } from './components/public/Navbar';
 import { VendorHero } from './components/public/VendorHero';
 import { CategoryGrid } from './components/public/CategoryGrid';
 import { CategoryShopRows } from './components/public/CategoryShopRows';
+import { TrustFeatures } from './components/public/TrustFeatures';
 import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
@@ -829,6 +830,9 @@ export default function App() {
                     onSelectCategory={setSelectedCategory}
                   />
                 )}
+
+                {/* Trust / Value Proposition Features */}
+                {!selectedCategory && !searchQuery && <TrustFeatures />}
 
                 {/* Featured Vendors Row */}
                 {featuredVendors.length > 0 && !selectedCategory && !searchQuery && (
