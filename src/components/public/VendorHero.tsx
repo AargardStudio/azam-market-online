@@ -20,12 +20,20 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
 }) => {
   return (
     <div className="bg-[#0F5C3A] text-white relative overflow-hidden">
-      {/* Decorative subtle background grid pattern */}
-      <div 
-        className="absolute inset-0 opacity-10 pointer-events-none"
+      {/* Banner photograph */}
+      <img
+        src="/hero-banner.jpg"
+        alt="Azam Market Online"
+        className="absolute inset-0 w-full h-full object-cover object-[75%_center]"
+      />
+      {/* Gradient overlay: solid brand-green on the left where the text and
+          search bar sit, fading out toward the right so the photo (and its
+          own Azam Market Online logo) stays visible. */}
+      <div
+        className="absolute inset-0"
         style={{
-          backgroundImage: `radial-gradient(#C9952A 1px, transparent 1px)`,
-          backgroundSize: '24px 24px',
+          background:
+            'linear-gradient(to right, rgba(15,92,58,0.97) 0%, rgba(15,92,58,0.92) 30%, rgba(15,92,58,0.55) 55%, rgba(15,92,58,0.25) 75%, rgba(15,92,58,0.15) 100%)',
         }}
       />
 
@@ -39,11 +47,11 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
             </div>
 
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
-              Lahore's Wholesale Fabrics & Textile Markets, <span className="text-[#C9952A] underline decoration-[#C9952A]/40 decoration-wavy underline-offset-8">Online.</span>
+              Lahore's Wholesale Cloth Market, <span className="text-[#C9952A] underline decoration-[#C9952A]/40 decoration-wavy underline-offset-8">Online.</span>
             </h1>
 
             <p className="text-emerald-100 text-sm sm:text-base max-w-2xl leading-relaxed">
-              Discover verified lawn, silk, chiffon, velvet, and khaddar vendors from Lahore's historic Azam Cloth Market. Download PDF lookbooks, inspect fabric specs, and initiate direct WhatsApp inquiries with stall owners.
+              Browse verified stalls across unstitched suits, bases, shawls &amp; dupattas, home textile, men's wear and branded stock from Lahore's historic Azam Cloth Market. Download PDF lookbooks, compare pricing, and initiate direct WhatsApp inquiries with stall owners.
             </p>
 
             {/* Integrated Search Input in Hero */}
@@ -68,10 +76,10 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
               {/* Quick Preset Tags */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-3 text-xs text-emerald-100">
                 <span className="text-emerald-200/80 font-medium">Popular:</span>
-                <button onClick={() => onSelectCategory('lawn-cotton')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">80x80 Lawn</button>
-                <button onClick={() => onSelectCategory('silk-chiffon')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Pure Silk</button>
-                <button onClick={() => onSelectCategory('velvet')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Micro Velvet 9000</button>
-                <button onClick={() => onSelectCategory('embroidered')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Schiffli Embroidered</button>
+                <button onClick={() => onSelectCategory('2pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">2 Pc Unstitched</button>
+                <button onClick={() => onSelectCategory('3pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">3 Pc Unstitched</button>
+                <button onClick={() => onSelectCategory('shawls-dupattas')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Shawls / Dupattas</button>
+                <button onClick={() => onSelectCategory('brands')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Brands</button>
               </div>
             </div>
           </div>
@@ -104,7 +112,7 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
                     {totalCategories}
                   </div>
                   <div className="text-[11px] text-emerald-200 font-medium mt-0.5">
-                    Fabric Types
+                    Categories
                   </div>
                 </div>
 
