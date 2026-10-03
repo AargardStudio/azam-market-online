@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, Image as ImageIcon, AlertCircle, Upload, X, Camera, Link, Sparkles, RefreshCw } from 'lucide-react';
+import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, AlertCircle, Upload, X, Camera, Link, Sparkles } from 'lucide-react';
 import { Product, Vendor } from '../../types';
 import { FABRIC_TYPES } from '../../lib/fabricTypes';
 import { useLanguage } from '../../lib/i18n';
@@ -20,6 +20,8 @@ const FABRIC_IMAGE_PRESETS = [
   { label: 'Banarasi Jamawar', url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80' },
 ];
 
+const DEFAULT_IMAGE = FABRIC_IMAGE_PRESETS[0].url;
+
 export const ProductManager: React.FC<ProductManagerProps> = ({
   vendor,
   onAddProduct,
@@ -36,27 +38,72 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [priceRange, setPriceRange] = useState('');
   const [moq, setMoq] = useState('');
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+
+  // Gallery state: images[0] is always the cover photo.
+  const [images, setImages] = useState<string[]>([]);
+  const [imageError, setImageError] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+
+  const maxImages = vendor.tier?.max_images_per_product ?? 5;
+  const maxImageSizeMb = vendor.tier?.max_image_size_mb ?? 5;
 
   // Image Upload State
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url' | 'presets'>('upload');
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileUpload = (file: File) => {
-    if (!file || !file.type.startsWith('image/')) {
-      alert('Please select an image file (PNG, JPG, WEBP).');
+  const addImage = (url: string) => {
+    if (!url) return;
+    if (images.length >= maxImages) {
+      setImageError(`You can add up to ${maxImages} images per product on the ${vendor.tier?.display_name || 'current'} Tier.`);
       return;
     }
-    setUploadedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result && typeof e.target.result === 'string') {
-        setImageUrl(e.target.result);
+    setImageError('');
+    setImages((prev) => [...prev, url]);
+  };
+
+  const removeImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+    setImageError('');
+  };
+
+  const handleFilesUpload = (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    const room = Math.max(0, maxImages - images.length);
+    let err = '';
+
+    if (room === 0) {
+      setImageError(`You can add up to ${maxImages} images per product on the ${vendor.tier?.display_name || 'current'} Tier.`);
+      return;
+    }
+
+    let queued = 0;
+    files.forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        err = 'Please select image files (PNG, JPG, WEBP).';
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+      const sizeMb = file.size / (1024 * 1024);
+      if (sizeMb > maxImageSizeMb) {
+        err = `"${file.name}" is ${sizeMb.toFixed(1)}MB — max allowed is ${maxImageSizeMb}MB per image.`;
+        return;
+      }
+      if (queued >= room) {
+        err = `Only ${room} more image(s) can be added (limit ${maxImages} per product).`;
+        return;
+      }
+      queued++;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result && typeof e.target.result === 'string') {
+          const result = e.target.result;
+          setImages((prev) => (prev.length >= maxImages ? prev : [...prev, result]));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    setImageError(err);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -72,8 +119,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesUpload(e.dataTransfer.files);
     }
   };
 
@@ -88,8 +135,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setPriceRange('₨800–1,200/m');
     setMoq('50 metres');
     setDescription('');
-    setImageUrl('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80');
-    setUploadedFileName('');
+    setImages([DEFAULT_IMAGE]);
+    setImageError('');
+    setUrlInput('');
     setImageInputMode('upload');
     setShowModal(true);
   };
@@ -102,32 +150,32 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setPriceRange(p.price_range);
     setMoq(p.moq);
     setDescription(p.description);
-    setImageUrl(p.image_url);
-    setUploadedFileName(p.image_url.startsWith('data:') ? 'Custom Fabric Upload' : '');
-    setImageInputMode(p.image_url.startsWith('data:') ? 'upload' : 'url');
+    setImages(p.image_urls && p.image_urls.length > 0 ? p.image_urls : [p.image_url]);
+    setImageError('');
+    setUrlInput('');
+    setImageInputMode('upload');
     setShowModal(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (images.length === 0) {
+      setImageError('Add at least one product image.');
+      return;
+    }
+    const payload = {
+      name,
+      fabric_type: fabricType,
+      price_range: priceRange,
+      moq,
+      description,
+      image_url: images[0],
+      image_urls: images,
+    };
     if (editingProduct) {
-      onUpdateProduct(editingProduct.id, {
-        name,
-        fabric_type: fabricType,
-        price_range: priceRange,
-        moq,
-        description,
-        image_url: imageUrl,
-      });
+      onUpdateProduct(editingProduct.id, payload);
     } else {
-      onAddProduct({
-        name,
-        fabric_type: fabricType,
-        price_range: priceRange,
-        moq,
-        description,
-        image_url: imageUrl,
-      });
+      onAddProduct(payload);
     }
     setShowModal(false);
   };
@@ -141,7 +189,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs">
         <div>
           <h2 className="font-serif text-xl font-bold text-gray-900">
-            Wholesale Products Catalog ({products.length})
+            Wholesale Products Catalog ({products.length}{maxProducts !== -1 ? ` / ${maxProducts}` : ''})
           </h2>
           <p className="text-xs text-gray-500">
             Manage your fabric rolls, unstitched suit sets, and swatch offerings.
@@ -184,6 +232,12 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
                   {p.fabric_type}
                 </span>
+                {p.image_urls && p.image_urls.length > 1 && (
+                  <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <Camera className="w-3 h-3" />
+                    {p.image_urls.length}
+                  </span>
+                )}
               </div>
 
               <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
@@ -235,7 +289,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       {/* Add / Edit Product Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="font-serif text-lg font-bold text-gray-900">
                 {editingProduct ? 'Edit Product' : 'Add Wholesale Product'}
@@ -323,10 +377,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
               {/* Dedicated Image Upload & Swatch Selector */}
               <div className="space-y-2 border-t border-b border-gray-100 py-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="font-bold text-gray-800 flex items-center gap-1.5 text-xs">
                     <Camera className="w-3.5 h-3.5 text-[#0F5C3A]" />
-                    <span>Product & Fabric Image</span>
+                    <span>Product & Fabric Images</span>
+                    <span className="font-normal text-gray-400">
+                      ({images.length}/{maxImages}, max {maxImageSizeMb}MB each)
+                    </span>
                   </label>
 
                   {/* Mode Selector Tabs */}
@@ -377,10 +434,12 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       className="hidden"
                       onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleFileUpload(e.target.files[0]);
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleFilesUpload(e.target.files);
+                          e.target.value = '';
                         }
                       }}
                     />
@@ -401,10 +460,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                           <Upload className="w-5 h-5" />
                         </div>
                         <div className="font-bold text-gray-800 text-xs">
-                          Click to browse or drag & drop product photo
+                          Click to browse or drag & drop up to {maxImages} photos
                         </div>
                         <p className="text-[11px] text-gray-500">
-                          PNG, JPG, WEBP fabric swatch rolls (Max 10MB)
+                          PNG, JPG, WEBP fabric swatch rolls (Max {maxImageSizeMb}MB each)
                         </p>
                       </div>
                     </div>
@@ -415,19 +474,16 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 {imageInputMode === 'presets' && (
                   <div className="space-y-1.5">
                     <p className="text-[11px] text-gray-500">
-                      Choose from authentic high-resolution Pakistani textile samples:
+                      Choose from authentic high-resolution Pakistani textile samples (tap to add to gallery):
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                       {FABRIC_IMAGE_PRESETS.map((preset, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => {
-                            setImageUrl(preset.url);
-                            setUploadedFileName(preset.label);
-                          }}
+                          onClick={() => addImage(preset.url)}
                           className={`group relative rounded-xl overflow-hidden border p-1.5 text-left transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                            imageUrl === preset.url
+                            images.includes(preset.url)
                               ? 'border-[#0F5C3A] ring-2 ring-[#0F5C3A]/20 bg-emerald-50/50'
                               : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
@@ -448,50 +504,61 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
                 {/* 3. Direct Image URL Mode */}
                 {imageInputMode === 'url' && (
-                  <div>
+                  <div className="flex items-center gap-2">
                     <input
                       type="url"
-                      value={imageUrl}
-                      onChange={(e) => {
-                        setImageUrl(e.target.value);
-                        setUploadedFileName('');
-                      }}
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
                       placeholder="Paste fabric image URL (https://...)"
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs"
                     />
-                  </div>
-                )}
-
-                {/* Current Image Preview & Verification Bar */}
-                {imageUrl && (
-                  <div className="flex items-center gap-3 p-2.5 bg-gray-50 border border-gray-200 rounded-xl">
-                    <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-white shrink-0 relative">
-                      <img
-                        src={imageUrl}
-                        alt="Product preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Image Attached</span>
-                      </div>
-                      <p className="text-[11px] text-gray-600 truncate mt-0.5">
-                        {uploadedFileName || (imageUrl.startsWith('data:') ? 'Custom Uploaded Photo' : imageUrl)}
-                      </p>
-                    </div>
                     <button
                       type="button"
                       onClick={() => {
-                        setImageUrl('');
-                        setUploadedFileName('');
+                        if (urlInput.trim()) {
+                          addImage(urlInput.trim());
+                          setUrlInput('');
+                        }
                       }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Remove Image"
+                      className="px-3 py-2 rounded-xl bg-[#0F5C3A] text-white font-bold text-xs cursor-pointer hover:bg-[#1A7A4F]"
                     >
-                      <X className="w-4 h-4" />
+                      Add
                     </button>
+                  </div>
+                )}
+
+                {imageError && (
+                  <p className="text-red-600 text-[11px] flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{imageError}</span>
+                  </p>
+                )}
+
+                {/* Gallery Preview Grid */}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-1">
+                    {images.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="relative w-full aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group"
+                      >
+                        <img src={url} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                        {idx === 0 && (
+                          <span className="absolute top-1 left-1 bg-[#0F5C3A] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            Cover
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-black/60 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Remove Image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

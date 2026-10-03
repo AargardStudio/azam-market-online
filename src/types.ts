@@ -28,6 +28,9 @@ export interface SubscriptionTier {
   price_pkr: number;
   max_products: number; // -1 = unlimited
   max_catalogues: number; // -1 = unlimited
+  max_images_per_product: number;
+  max_image_size_mb: number;
+  max_catalogue_size_mb: number;
   has_analytics: boolean;
   has_verified_badge: boolean;
   has_featured_placement: boolean;
@@ -42,7 +45,8 @@ export interface Product {
   fabric_type: string;
   price_range: string; // e.g., '₨800–1200/m'
   moq: string; // e.g., '50 metres'
-  image_url: string;
+  image_url: string; // cover photo
+  image_urls?: string[]; // full gallery, cover photo first
   is_active: boolean;
   sort_order: number;
   created_at: string;

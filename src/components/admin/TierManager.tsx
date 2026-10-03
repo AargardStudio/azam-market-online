@@ -40,6 +40,18 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
                 <span>PDF Catalogues: <strong>{t.max_catalogues === -1 ? 'Unlimited' : t.max_catalogues}</strong></span>
               </li>
               <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Images per Product: <strong>{t.max_images_per_product}</strong></span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Max Image Size: <strong>{t.max_image_size_mb}MB</strong></span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Max Catalogue Size: <strong>{t.max_catalogue_size_mb}MB</strong></span>
+              </li>
+              <li className="flex items-center gap-2">
                 <Check className={`w-4 h-4 ${t.has_analytics ? 'text-[#0F5C3A]' : 'text-gray-300'}`} />
                 <span className={t.has_analytics ? '' : 'text-gray-400 line-through'}>Analytics Enabled</span>
               </li>

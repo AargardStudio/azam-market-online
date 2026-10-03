@@ -18,18 +18,26 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
   const [season, setSeason] = useState('Summer 2026');
   const [description, setDescription] = useState('');
   const [fileSizeMb, setFileSizeMb] = useState<number>(4.5);
+  const [sizeError, setSizeError] = useState('');
 
   const catalogues = vendor.catalogues || [];
   const maxCatalogues = vendor.tier?.max_catalogues ?? 1;
+  const maxCatalogueSizeMb = vendor.tier?.max_catalogue_size_mb ?? 50;
   const isAtLimit = maxCatalogues !== -1 && catalogues.length >= maxCatalogues;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const size = Number(fileSizeMb);
+    if (size > maxCatalogueSizeMb) {
+      setSizeError(`PDF is ${size}MB — max allowed is ${maxCatalogueSizeMb}MB on the ${vendor.tier?.display_name || 'current'} Tier.`);
+      return;
+    }
+    setSizeError('');
     onAddCatalogue({
       title,
       season,
       description: description || 'Official wholesale fabric lookbook & dye swatch reference.',
-      file_size_mb: Number(fileSizeMb),
+      file_size_mb: size,
     });
     setShowModal(false);
     setTitle('');
@@ -171,15 +179,22 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-gray-700 block mb-1">Estimated File Size (MB)</label>
+                <label className="font-bold text-gray-700 block mb-1">
+                  Estimated File Size (MB) <span className="font-normal text-gray-400">(max {maxCatalogueSizeMb}MB)</span>
+                </label>
                 <input
                   type="number"
                   step="0.1"
                   required
+                  max={maxCatalogueSizeMb}
                   value={fileSizeMb}
-                  onChange={(e) => setFileSizeMb(parseFloat(e.target.value) || 4.5)}
+                  onChange={(e) => {
+                    setFileSizeMb(parseFloat(e.target.value) || 4.5);
+                    setSizeError('');
+                  }}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
                 />
+                {sizeError && <p className="text-red-600 text-[11px] mt-1">{sizeError}</p>}
               </div>
 
               <div>
@@ -197,7 +212,7 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
               <div className="border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-xl p-4 text-center space-y-1">
                 <Upload className="w-6 h-6 text-[#0F5C3A] mx-auto" />
                 <div className="font-bold text-gray-800">Selected PDF File Verified</div>
-                <div className="text-[10px] text-gray-500">Max size 25MB • PDF Document Format</div>
+                <div className="text-[10px] text-gray-500">Max size {maxCatalogueSizeMb}MB • PDF Document Format</div>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">

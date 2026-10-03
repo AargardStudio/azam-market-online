@@ -61,6 +61,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'catalogues'>('overview');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
   // Extract customization settings with fallback
@@ -644,7 +645,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                               {vendor.products.slice(0, 3).map((prod) => (
                                 <div
                                   key={prod.id}
-                                  onClick={() => setSelectedProduct(prod)}
+                                  onClick={() => { setSelectedProduct(prod); setActiveImageIdx(0); }}
                                   className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden cursor-pointer group hover:shadow-md transition-all flex flex-col justify-between"
                                 >
                                   <div className="h-32 bg-gray-200 overflow-hidden relative">
@@ -1364,7 +1365,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                 {vendor.products.map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => setSelectedProduct(p)}
+                    onClick={() => { setSelectedProduct(p); setActiveImageIdx(0); }}
                     className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between"
                   >
                     <div className="h-48 bg-gray-100 overflow-hidden relative">
@@ -1511,7 +1512,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
           <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-4">
             <div className="relative h-64 bg-gray-100">
               <img
-                src={selectedProduct.image_url}
+                src={(selectedProduct.image_urls && selectedProduct.image_urls[activeImageIdx]) || selectedProduct.image_url}
                 alt={selectedProduct.name}
                 className="w-full h-full object-cover"
               />
@@ -1523,7 +1524,23 @@ export const VendorShop: React.FC<VendorShopProps> = ({
               </button>
             </div>
 
-            <div className="p-6 space-y-3">
+            {selectedProduct.image_urls && selectedProduct.image_urls.length > 1 && (
+              <div className="px-6 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                {selectedProduct.image_urls.map((url, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIdx(idx)}
+                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 cursor-pointer ${
+                      idx === activeImageIdx ? 'border-[#0F5C3A]' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={url} alt={`${selectedProduct.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="p-6 pt-0 space-y-3">
               <span
                 className="text-xs font-bold px-2.5 py-1 rounded-md"
                 style={{
