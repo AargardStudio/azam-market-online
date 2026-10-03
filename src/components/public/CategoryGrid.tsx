@@ -38,6 +38,48 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {categories.map((cat) => {
           const isSelected = selectedCategory === cat.slug;
+          const name = lang === 'ur' && cat.name_ur ? cat.name_ur : cat.name;
+
+          if (cat.image_url) {
+            return (
+              <button
+                key={cat.id}
+                onClick={() => onSelectCategory(isSelected ? null : cat.slug)}
+                className={`relative aspect-[3/4] rounded-xl overflow-hidden text-center transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'border-[#0F5C3A] shadow-md transform -translate-y-0.5 ring-2 ring-[#0F5C3A]'
+                    : 'border-gray-200 hover:border-[#0F5C3A]'
+                }`}
+              >
+                <img
+                  src={cat.image_url}
+                  alt={name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      'linear-gradient(to top, rgba(15,15,15,0.85) 0%, rgba(15,15,15,0.35) 45%, rgba(15,15,15,0.05) 70%)',
+                  }}
+                />
+                <div className="absolute inset-x-0 bottom-0 p-2 flex flex-col items-center gap-1">
+                  <span className="text-xs font-semibold leading-tight text-white line-clamp-2 drop-shadow">
+                    {name}
+                  </span>
+                  <span
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                      isSelected ? 'bg-[#0F5C3A] text-white' : 'bg-white/90 text-gray-700'
+                    }`}
+                  >
+                    {cat.vendor_count} stalls
+                  </span>
+                </div>
+              </button>
+            );
+          }
+
           return (
             <button
               key={cat.id}
@@ -50,7 +92,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
             >
               <span className="text-2xl">{cat.icon || '🧵'}</span>
               <span className="text-xs font-semibold leading-tight line-clamp-2">
-                {lang === 'ur' && cat.name_ur ? cat.name_ur : cat.name}
+                {name}
               </span>
               <span
                 className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${

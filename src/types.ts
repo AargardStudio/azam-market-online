@@ -14,6 +14,7 @@ export interface Category {
   name_ur?: string; // Urdu display name
   slug: string;
   icon: string;
+  image_url?: string;
   market_id?: string;
   vendor_count: number;
 }
