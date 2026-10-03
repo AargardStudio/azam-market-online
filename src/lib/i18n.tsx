@@ -47,7 +47,7 @@ const dict = {
     'sub.trialDaysLeft': 'days left in your free trial',
     'sub.trialExpired': 'Your free trial has ended',
     'sub.active': 'Subscription active',
-    'sub.subscribeCta': 'Subscribe – $5 / month',
+    'sub.subscribeCta': 'Subscribe Now',
     'sub.notLive': 'Your shop is hidden from the directory until you subscribe.',
   },
   ur: {
@@ -86,7 +86,7 @@ const dict = {
     'sub.trialDaysLeft': 'دن باقی ہیں آپ کے مفت ٹرائل میں',
     'sub.trialExpired': 'آپ کا مفت ٹرائل ختم ہو چکا ہے',
     'sub.active': 'سبسکرپشن فعال ہے',
-    'sub.subscribeCta': 'سبسکرائب کریں – $5 / ماہانہ',
+    'sub.subscribeCta': 'سبسکرائب کریں',
     'sub.notLive': 'سبسکرائب کرنے تک آپ کی دکان ڈائریکٹری میں نظر نہیں آئے گی۔',
   },
 } as const;

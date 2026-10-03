@@ -244,7 +244,13 @@ export default function App() {
       const activeCount = loadedVendors.filter((v) => v.status === 'active').length;
       const pendingCount = loadedVendors.filter((v) => v.status === 'pending').length;
       const suspendedCount = loadedVendors.filter((v) => v.status === 'suspended').length;
-      const mrr = loadedVendors
+      const mrrUsd = loadedVendors
+        .filter((v) => v.status === 'active')
+        .reduce((sum, v) => {
+          const t = loadedTiers.find((x: SubscriptionTier) => x.id === v.tier_id);
+          return sum + (t ? t.price_usd : 0);
+        }, 0);
+      const mrrPkr = loadedVendors
         .filter((v) => v.status === 'active')
         .reduce((sum, v) => {
           const t = loadedTiers.find((x: SubscriptionTier) => x.id === v.tier_id);
@@ -256,7 +262,8 @@ export default function App() {
         activeVendorsCount: activeCount,
         pendingApprovalsCount: pendingCount,
         suspendedCount: suspendedCount,
-        mrrPkr: mrr,
+        mrrUsd,
+        mrrPkr,
         tierBreakdown: {
           basic: loadedVendors.filter((v) => v.tier_id === 't-basic' && v.status === 'active').length,
           standard: loadedVendors.filter((v) => v.tier_id === 't-standard' && v.status === 'active').length,
@@ -633,23 +640,40 @@ export default function App() {
     }
   };
 
-  // Sends the vendor to Stripe's hosted checkout for the $5/month
-  // subscription via a Stripe Payment Link -- a static URL created once
-  // in the Stripe Dashboard, so no backend call and no STRIPE_SECRET_KEY
-  // are needed just to start checkout. ?client_reference_id= ties the
-  // resulting Checkout Session back to this vendor so the webhook (see
-  // api/stripe/webhook.ts) knows whose subscription_status to flip once
-  // Stripe confirms payment. Trial gating / visibility is enforced by RLS
-  // server-side.
+  // Sends the vendor to Stripe's hosted checkout for their tier's monthly
+  // price (Standard $5/mo, Premium $20/mo) via a per-tier Stripe Payment
+  // Link -- a static URL created once in the Stripe Dashboard, so no
+  // backend call and no STRIPE_SECRET_KEY are needed just to start
+  // checkout. Each tier's link can be set two ways: a stripe_payment_link
+  // value on the subscription_tiers row (set by admin, takes priority), or
+  // a per-tier env var (VITE_STRIPE_PAYMENT_LINK_STANDARD /
+  // VITE_STRIPE_PAYMENT_LINK_PREMIUM) as a fallback. ?client_reference_id=
+  // ties the resulting Checkout Session back to this vendor so the webhook
+  // (see api/stripe/webhook.ts) knows whose subscription_status to flip
+  // once Stripe confirms payment. Trial gating / visibility is enforced by
+  // RLS server-side.
   const [subscribeLoading, setSubscribeLoading] = useState(false);
   const handleSubscribe = (vendorId: string) => {
-    const paymentLink = import.meta.env.VITE_STRIPE_PAYMENT_LINK as string | undefined;
+    const vendor = vendors.find((v) => v.id === vendorId);
+    const tierName = vendor?.tier?.name;
+
+    const envLinkByTier: Record<string, string | undefined> = {
+      standard: import.meta.env.VITE_STRIPE_PAYMENT_LINK_STANDARD as string | undefined,
+      premium: import.meta.env.VITE_STRIPE_PAYMENT_LINK_PREMIUM as string | undefined,
+    };
+    // Legacy single-link env var, kept as a last-resort fallback.
+    const legacyLink = import.meta.env.VITE_STRIPE_PAYMENT_LINK as string | undefined;
+
+    const paymentLink =
+      vendor?.tier?.stripe_payment_link ||
+      (tierName ? envLinkByTier[tierName] : undefined) ||
+      legacyLink;
+
     if (!paymentLink) {
-      alert('Subscription checkout is not configured yet. Please contact Azam Market Online support.');
+      alert('Subscription checkout is not configured yet for this tier. Please contact Azam Market Online support.');
       return;
     }
     setSubscribeLoading(true);
-    const vendor = vendors.find((v) => v.id === vendorId);
     const url = new URL(paymentLink);
     url.searchParams.set('client_reference_id', vendorId);
     if (vendor?.email) {

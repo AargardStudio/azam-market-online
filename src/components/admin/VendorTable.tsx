@@ -143,7 +143,7 @@ export const VendorTable: React.FC<VendorTableProps> = ({
                   >
                     {tiers.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.display_name} (₨{t.price_pkr.toLocaleString()})
+                        {t.display_name} (${t.price_usd.toLocaleString()})
                       </option>
                     ))}
                   </select>

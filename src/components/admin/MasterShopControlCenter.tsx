@@ -138,9 +138,9 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
     const totalCatalogues = vendors.reduce((sum, v) => sum + (v.catalogues?.length || 0), 0);
     const totalProducts = vendors.reduce((sum, v) => sum + (v.products?.length || 0), 0);
 
-    const mrr = vendors.filter(v => v.status === 'active').reduce((sum, v) => {
+    const mrrUsd = vendors.filter(v => v.status === 'active').reduce((sum, v) => {
       const t = tiers.find(tier => tier.id === v.tier_id);
-      return sum + (t ? t.price_pkr : 0);
+      return sum + (t ? t.price_usd : 0);
     }, 0);
 
     return {
@@ -156,7 +156,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
       totalMessages,
       totalCatalogues,
       totalProducts,
-      mrr,
+      mrrUsd,
     };
   }, [vendors, tiers]);
 
@@ -373,7 +373,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
           <div className="bg-black/25 backdrop-blur-xs p-3 rounded-2xl border border-white/10">
             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Platform MRR</div>
             <div className="font-serif text-xl font-bold text-[#C9952A] mt-1">
-              ₨{(platformStats.mrr / 1000).toFixed(0)}k
+              ${platformStats.mrrUsd.toLocaleString()}
             </div>
             <div className="text-[10px] text-gray-400 mt-0.5">
               Subscription revenue
@@ -458,7 +458,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
           >
             <option value="all">All Subscription Tiers</option>
             {tiers.map(t => (
-              <option key={t.id} value={t.id}>{t.display_name} (₨{t.price_pkr.toLocaleString()})</option>
+              <option key={t.id} value={t.id}>{t.display_name} (${t.price_usd.toLocaleString()})</option>
             ))}
           </select>
 
@@ -840,7 +840,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                         >
                           {tiers.map((t) => (
                             <option key={t.id} value={t.id}>
-                              {t.display_name} (₨{t.price_pkr.toLocaleString()})
+                              {t.display_name} (${t.price_usd.toLocaleString()})
                             </option>
                           ))}
                         </select>
@@ -1952,7 +1952,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                               )}
                             </div>
                             <div className="font-serif text-lg font-bold text-[#0F5C3A] mt-2">
-                              ₨{t.price_pkr.toLocaleString()}
+                              ${t.price_usd.toLocaleString()}
                               <span className="text-[10px] text-gray-500 font-sans"> / mo</span>
                             </div>
 
@@ -2212,7 +2212,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
                   >
                     {tiers.map(t => (
-                      <option key={t.id} value={t.id}>{t.display_name} (₨{t.price_pkr.toLocaleString()}/mo)</option>
+                      <option key={t.id} value={t.id}>{t.display_name} (${t.price_usd.toLocaleString()}/mo)</option>
                     ))}
                   </select>
                 </div>

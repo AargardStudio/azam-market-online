@@ -27,8 +27,11 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
             </div>
 
             <div className="font-serif text-3xl font-bold text-[#0F5C3A]">
-              ₨{t.price_pkr.toLocaleString()} <span className="text-xs font-normal text-gray-500">PKR / mo</span>
+              {t.price_usd > 0 ? `$${t.price_usd.toLocaleString()}` : 'Free'} <span className="text-xs font-normal text-gray-500">{t.price_usd > 0 ? '/ mo' : ''}</span>
             </div>
+            {t.price_usd > 0 && (
+              <div className="text-[10px] text-gray-400">≈ ₨{t.price_pkr.toLocaleString()} PKR</div>
+            )}
 
             <ul className="space-y-2 text-xs text-gray-700 pt-2 border-t border-gray-100">
               <li className="flex items-center gap-2">

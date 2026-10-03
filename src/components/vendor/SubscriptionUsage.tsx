@@ -15,6 +15,9 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
   onSubscribe,
   subscribeLoading,
 }) => {
+  const tier = vendor.tier;
+  const isFreeTier = !tier || tier.price_usd <= 0;
+
   const isActive = vendor.subscription_status === 'active';
   const isPastDue = vendor.subscription_status === 'past_due';
   const isCanceled = vendor.subscription_status === 'canceled';
@@ -24,7 +27,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
     : 0;
   const isTrialing = vendor.subscription_status === 'trialing';
   const trialExpired = isTrialing && daysLeft <= 0;
-  const isLive = isActive || (isTrialing && !trialExpired);
+  const isLive = isActive || isFreeTier || (isTrialing && !trialExpired);
 
   return (
     <div className="space-y-6">
@@ -34,13 +37,28 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </span>
         <h2 className="font-serif text-2xl font-bold text-gray-900">Subscription</h2>
         <p className="text-xs text-gray-500">
-          Azam Market Online is a flat <strong className="text-gray-900">$5 / month</strong> subscription per shop —
-          no tiers, no surprises. New shops get a 30-day free trial before billing starts.
+          Azam Market Online has three tiers — <strong className="text-gray-900">Basic (free)</strong>,{' '}
+          <strong className="text-gray-900">Standard (${tiers.find((t) => t.name === 'standard')?.price_usd ?? 5}/mo)</strong> and{' '}
+          <strong className="text-gray-900">Premium (${tiers.find((t) => t.name === 'premium')?.price_usd ?? 20}/mo)</strong>.
+          {!isFreeTier && ' New paid shops get a 30-day free trial before billing starts.'}
         </p>
       </div>
 
-      {/* Status banner */}
-      {isActive && (
+      {/* Free tier: nothing to pay, nothing to subscribe to. */}
+      {isFreeTier && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
+          <ShieldCheck className="w-6 h-6 text-[#0F5C3A] shrink-0" />
+          <div>
+            <div className="font-bold text-sm text-[#0F5C3A]">You're on the free Basic plan</div>
+            <p className="text-xs text-emerald-800/80 mt-0.5">
+              Your shop is live in the directory at no cost. Upgrade to Standard or Premium any time for more products, catalogues and analytics.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Status banners for paid tiers */}
+      {!isFreeTier && isActive && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-[#0F5C3A] shrink-0" />
           <div>
@@ -52,7 +70,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {isPastDue && (
+      {!isFreeTier && isPastDue && (
         <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex items-center gap-3">
           <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
           <div>
@@ -64,7 +82,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {(isTrialing || isCanceled) && (
+      {!isFreeTier && (isTrialing || isCanceled) && (
         <div
           className={`rounded-2xl p-5 flex items-center gap-3 border ${
             trialExpired || isCanceled
@@ -94,16 +112,18 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {/* Subscribe card */}
-      {!isActive && (
+      {/* Subscribe card — only for paid tiers that aren't active yet */}
+      {!isFreeTier && !isActive && (
         <div className="rounded-2xl border border-[#0F5C3A] bg-gradient-to-b from-emerald-50/60 to-white p-6 space-y-5 shadow-md">
           <div className="flex items-center justify-between">
-            <h3 className="font-serif font-bold text-lg text-gray-900">Azam Market Online — Standard</h3>
+            <h3 className="font-serif font-bold text-lg text-gray-900">
+              Azam Market Online — {tier?.display_name || 'Standard'}
+            </h3>
             <Sparkles className="w-5 h-5 text-[#C9952A]" />
           </div>
 
           <div className="font-serif text-4xl font-bold text-gray-900">
-            $5 <span className="text-sm font-normal text-gray-500">/ month</span>
+            ${tier?.price_usd ?? 5} <span className="text-sm font-normal text-gray-500">/ month</span>
           </div>
 
           <ul className="space-y-2 text-xs text-gray-700 pt-2 border-t border-gray-100">
@@ -113,16 +133,36 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#0F5C3A]" />
-              <span>Up to {vendor.tier?.max_products ?? 10} products with your own pricing</span>
+              <span>
+                {tier && tier.max_products === -1
+                  ? 'Unlimited products with your own pricing'
+                  : `Up to ${tier?.max_products ?? 10} products with your own pricing`}
+              </span>
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#0F5C3A]" />
-              <span>PDF catalogue upload</span>
+              <span>
+                {tier && tier.max_catalogues === -1
+                  ? 'Unlimited PDF catalogue uploads'
+                  : `Up to ${tier?.max_catalogues ?? 1} PDF catalogue upload${(tier?.max_catalogues ?? 1) === 1 ? '' : 's'}`}
+              </span>
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#0F5C3A]" />
-              <span>WhatsApp, call & SMS inquiries with analytics</span>
+              <span>WhatsApp, call & SMS inquiries{tier?.has_analytics ? ' with analytics' : ''}</span>
             </li>
+            {tier?.has_verified_badge && (
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Gold Verified stall badge</span>
+              </li>
+            )}
+            {tier?.has_featured_placement && (
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Featured placement on the homepage</span>
+              </li>
+            )}
           </ul>
 
           <button
@@ -136,7 +176,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
                 <span>Redirecting to checkout...</span>
               </>
             ) : (
-              <span>Subscribe – $5 / month</span>
+              <span>Subscribe – ${tier?.price_usd ?? 5} / month</span>
             )}
           </button>
           <p className="text-[11px] text-gray-400 text-center">

@@ -142,7 +142,7 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
             >
               {tiers.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.display_name} Tier (₨{t.price_pkr.toLocaleString()} PKR / mo)
+                  {t.display_name} Tier (${t.price_usd.toLocaleString()} / mo)
                 </option>
               ))}
             </select>

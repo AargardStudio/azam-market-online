@@ -58,7 +58,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const sortedTiers = [...tiers].sort((a, b) => a.price_pkr - b.price_pkr);
+  const sortedTiers = [...tiers].sort((a, b) => a.price_usd - b.price_usd);
   const effectiveTierId = tierId || sortedTiers[0]?.id || 't-basic';
   const effectiveMarketId = marketId;
 
@@ -430,7 +430,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
                       {tier.has_verified_badge && <Award className="w-3.5 h-3.5 text-[#C9952A]" />}
                     </div>
                     <p className="text-sm font-bold text-[#0F5C3A] mt-1">
-                      {tier.price_pkr > 0 ? `₨${tier.price_pkr.toLocaleString()}/mo` : 'Free'}
+                      {tier.price_usd > 0 ? `$${tier.price_usd.toLocaleString()}/mo` : 'Free'}
                     </p>
                     <p className="text-[10px] text-gray-500 mt-0.5">
                       {tier.max_products === -1 ? 'Unlimited products' : `Up to ${tier.max_products} products`}

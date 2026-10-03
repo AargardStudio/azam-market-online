@@ -8,6 +8,7 @@ interface AdminOverviewProps {
     activeVendorsCount: number;
     pendingApprovalsCount: number;
     suspendedCount: number;
+    mrrUsd: number;
     mrrPkr: number;
     tierBreakdown: { basic: number; standard: number; premium: number };
     recentOnboards: Vendor[];
@@ -87,7 +88,10 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ metrics, onNavigat
             </div>
           </div>
           <div className="font-serif text-2xl font-bold text-gray-900">
-            ₨{metrics.mrrPkr.toLocaleString()} PKR
+            ${metrics.mrrUsd.toLocaleString()} <span className="text-sm font-normal text-gray-400">/ mo</span>
+          </div>
+          <div className="text-[10px] text-gray-400">
+            ≈ ₨{metrics.mrrPkr.toLocaleString()} PKR
           </div>
           <div className="text-[11px] text-emerald-600 font-semibold">
             Across {metrics.activeVendorsCount} active paying vendors

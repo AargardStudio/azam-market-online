@@ -25,7 +25,8 @@ export interface SubscriptionTier {
   id: string;
   name: 'basic' | 'standard' | 'premium';
   display_name: string;
-  price_pkr: number;
+  price_usd: number; // what Stripe actually charges
+  price_pkr: number; // approximate PKR equivalent, shown for local vendors
   max_products: number; // -1 = unlimited
   max_catalogues: number; // -1 = unlimited
   max_images_per_product: number;
@@ -35,6 +36,7 @@ export interface SubscriptionTier {
   has_verified_badge: boolean;
   has_featured_placement: boolean;
   stripe_price_id?: string;
+  stripe_payment_link?: string; // per-tier Stripe Payment Link URL
 }
 
 export interface Product {
