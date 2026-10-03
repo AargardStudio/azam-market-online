@@ -48,7 +48,7 @@ export const INITIAL_TIERS: SubscriptionTier[] = [
     display_name: 'Basic',
     price_usd: 0,
     price_pkr: 0,
-    is_available: true,
+    is_available: false,
     max_products: 10,
     max_catalogues: 5,
     max_images_per_product: 5,

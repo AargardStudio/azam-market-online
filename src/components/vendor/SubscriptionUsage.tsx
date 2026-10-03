@@ -39,19 +39,15 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         <p className="text-xs text-gray-500">
           {(() => {
             const availablePaid = tiers.filter((t) => t.is_available && t.price_usd > 0);
-            const parts = [
-              <strong key="basic" className="text-gray-900">Basic (free)</strong>,
-              ...availablePaid.map((t, i) => (
-                <React.Fragment key={t.id}>
-                  {i === 0 ? ', ' : ' and '}
-                  <strong className="text-gray-900">{t.display_name} (${t.price_usd}/mo)</strong>
-                </React.Fragment>
-              )),
-            ];
+            const parts = availablePaid.map((t, i) => (
+              <React.Fragment key={t.id}>
+                {i > 0 ? ' and ' : ''}
+                <strong className="text-gray-900">{t.display_name} (${t.price_usd}/mo)</strong>
+              </React.Fragment>
+            ));
             return (
               <>
-                Azam Market Online currently offers {parts}.
-                {!isFreeTier && ' New paid shops get a 30-day free trial before billing starts.'}
+                Azam Market Online is {parts}. Every new shop gets a 30-day free trial before billing starts.
               </>
             );
           })()}

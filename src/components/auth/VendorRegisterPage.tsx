@@ -58,8 +58,14 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const sortedTiers = [...tiers].sort((a, b) => a.price_usd - b.price_usd);
-  const effectiveTierId = tierId || sortedTiers.find((t) => t.is_available)?.id || sortedTiers[0]?.id || 't-basic';
+  // Retired tiers (unavailable AND free, e.g. the old Basic plan) are
+  // dropped entirely -- they're not coming back. An unavailable PAID tier
+  // (e.g. Premium while it's paused) still shows up, just disabled, so
+  // vendors know it exists.
+  const sortedTiers = [...tiers]
+    .filter((t) => t.is_available || t.price_usd > 0)
+    .sort((a, b) => a.price_usd - b.price_usd);
+  const effectiveTierId = tierId || sortedTiers.find((t) => t.is_available)?.id || sortedTiers[0]?.id || 't-standard';
   const effectiveMarketId = marketId;
 
   const MAX_CATEGORIES = 3;

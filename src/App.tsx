@@ -135,7 +135,7 @@ function AppInner() {
           .insert({
             user_id: session.user.id,
             market_id: market?.id,
-            tier_id: 't-basic',
+            tier_id: 't-standard',
             slug,
             shop_name: 'New Stall (finish setup)',
             email,
@@ -603,7 +603,7 @@ function AppInner() {
     try {
       const defaultMarketId = vendorData.market_id || markets[0]?.id;
       const { error } = await supabase.from('vendors').insert({
-        tier_id: 't-basic',
+        tier_id: 't-standard',
         status: 'active', // admin-onboarded stalls go live immediately (RLS allows this for admins)
         ...vendorData,
         market_id: defaultMarketId,

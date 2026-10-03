@@ -517,7 +517,7 @@ app.post('/api/vendors', (req, res) => {
     id: `v-${Date.now()}`,
     user_id: `usr-${Date.now()}`,
     market_id: market_id || 'm-azam-1',
-    tier_id: tier_id || 't-basic',
+    tier_id: tier_id || 't-standard',
     slug,
     shop_name,
     stall_number: stall_number || 'Stall Azam Cloth Market',

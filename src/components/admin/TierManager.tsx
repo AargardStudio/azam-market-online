@@ -27,7 +27,7 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
             </div>
             {!t.is_available && (
               <span className="inline-block bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                Coming Soon — not open for sign-up
+                {t.price_usd === 0 ? 'Retired — no longer offered' : 'Coming Soon — not open for sign-up'}
               </span>
             )}
 
