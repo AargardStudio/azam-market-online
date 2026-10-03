@@ -19,25 +19,25 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
   onSelectCategory,
 }) => {
   return (
-    <div className="bg-[#0F5C3A] text-white relative overflow-hidden">
+    <div className="bg-gray-900 text-white relative overflow-hidden min-h-[560px] sm:min-h-[620px] md:min-h-[700px] flex items-center">
       {/* Banner photograph */}
       <img
         src="/hero-banner.jpg"
         alt="Azam Market Online"
         className="absolute inset-0 w-full h-full object-cover object-[75%_center]"
       />
-      {/* Gradient overlay: solid brand-green on the left where the text and
+      {/* Gradient overlay: neutral dark tint on the left where the text and
           search bar sit, fading out toward the right so the photo (and its
-          own Azam Market Online logo) stays visible. */}
+          own Azam Market Online logo) stays visible, with no green color cast. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(to right, rgba(15,92,58,0.97) 0%, rgba(15,92,58,0.92) 30%, rgba(15,92,58,0.55) 55%, rgba(15,92,58,0.25) 75%, rgba(15,92,58,0.15) 100%)',
+            'linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.85) 30%, rgba(10,10,10,0.5) 55%, rgba(10,10,10,0.2) 75%, rgba(10,10,10,0.1) 100%)',
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 relative z-10 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Text */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
@@ -50,7 +50,7 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
               Lahore's Wholesale Cloth Market, <span className="text-[#C9952A] underline decoration-[#C9952A]/40 decoration-wavy underline-offset-8">Online.</span>
             </h1>
 
-            <p className="text-emerald-100 text-sm sm:text-base max-w-2xl leading-relaxed">
+            <p className="text-gray-200 text-sm sm:text-base max-w-2xl leading-relaxed">
               Browse verified stalls across unstitched suits, bases, shawls &amp; dupattas, home textile, men's wear and branded stock from Lahore's historic Azam Cloth Market. Download PDF lookbooks, compare pricing, and initiate direct WhatsApp inquiries with stall owners.
             </p>
 
@@ -74,12 +74,12 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
               </div>
 
               {/* Quick Preset Tags */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-3 text-xs text-emerald-100">
-                <span className="text-emerald-200/80 font-medium">Popular:</span>
-                <button onClick={() => onSelectCategory('2pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">2 Pc Unstitched</button>
-                <button onClick={() => onSelectCategory('3pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">3 Pc Unstitched</button>
-                <button onClick={() => onSelectCategory('shawls-dupattas')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Shawls / Dupattas</button>
-                <button onClick={() => onSelectCategory('brands')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-emerald-50 transition-colors">Brands</button>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-3 text-xs text-gray-200">
+                <span className="text-gray-300/80 font-medium">Popular:</span>
+                <button onClick={() => onSelectCategory('2pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-gray-100 transition-colors">2 Pc Unstitched</button>
+                <button onClick={() => onSelectCategory('3pc-unstitched')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-gray-100 transition-colors">3 Pc Unstitched</button>
+                <button onClick={() => onSelectCategory('shawls-dupattas')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-gray-100 transition-colors">Shawls / Dupattas</button>
+                <button onClick={() => onSelectCategory('brands')} className="bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md text-gray-100 transition-colors">Brands</button>
               </div>
             </div>
           </div>
@@ -99,7 +99,7 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
                   <div className="font-serif text-2xl font-bold text-white">
                     {totalVendors}
                   </div>
-                  <div className="text-[11px] text-emerald-200 font-medium mt-0.5">
+                  <div className="text-[11px] text-gray-300 font-medium mt-0.5">
                     Verified Stalls
                   </div>
                 </div>
@@ -111,7 +111,7 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
                   <div className="font-serif text-2xl font-bold text-white">
                     {totalCategories}
                   </div>
-                  <div className="text-[11px] text-emerald-200 font-medium mt-0.5">
+                  <div className="text-[11px] text-gray-300 font-medium mt-0.5">
                     Categories
                   </div>
                 </div>
@@ -123,13 +123,13 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
                   <div className="font-serif text-2xl font-bold text-white">
                     {totalCataloguesDownloaded}
                   </div>
-                  <div className="text-[11px] text-emerald-200 font-medium mt-0.5">
+                  <div className="text-[11px] text-gray-300 font-medium mt-0.5">
                     PDF Lookbooks
                   </div>
                 </div>
               </div>
 
-              <div className="bg-emerald-950/40 rounded-xl p-3.5 border border-emerald-500/20 text-xs flex items-center justify-between text-emerald-100">
+              <div className="bg-black/40 rounded-xl p-3.5 border border-white/15 text-xs flex items-center justify-between text-gray-200">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span>Active Wholesale Buyers Online Now</span>
