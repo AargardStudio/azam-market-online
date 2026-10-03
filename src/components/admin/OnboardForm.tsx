@@ -50,11 +50,18 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
     setTimeout(() => setSuccessMsg(false), 4000);
   };
 
+  const MAX_CATEGORIES = 3;
+  const [catLimitMsg, setCatLimitMsg] = useState('');
+
   const toggleCategory = (id: string) => {
     if (selectedCatIds.includes(id)) {
       setSelectedCatIds(selectedCatIds.filter((c) => c !== id));
+      setCatLimitMsg('');
+    } else if (selectedCatIds.length >= MAX_CATEGORIES) {
+      setCatLimitMsg(`You can select up to ${MAX_CATEGORIES} categories.`);
     } else {
       setSelectedCatIds([...selectedCatIds, id]);
+      setCatLimitMsg('');
     }
   };
 
@@ -173,20 +180,24 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
         {/* Categories Selection */}
         <div>
           <label className="font-bold text-gray-700 block mb-1">
-            Assign Fabric Categories:
+            Assign Fabric Categories (up to {MAX_CATEGORIES}):
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {categories.map((cat) => {
               const checked = selectedCatIds.includes(cat.id);
+              const disabled = !checked && selectedCatIds.length >= MAX_CATEGORIES;
               return (
                 <button
                   type="button"
                   key={cat.id}
                   onClick={() => toggleCategory(cat.id)}
+                  disabled={disabled}
                   className={`p-2 rounded-xl border text-left flex items-center gap-2 ${
                     checked
-                      ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold'
-                      : 'bg-gray-50 border-gray-200 text-gray-700'
+                      ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold cursor-pointer'
+                      : disabled
+                      ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 cursor-pointer'
                   }`}
                 >
                   <span>{cat.icon}</span>
@@ -195,6 +206,10 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
               );
             })}
           </div>
+          <p className="text-[11px] text-gray-400 mt-1">
+            {selectedCatIds.length}/{MAX_CATEGORIES} selected
+          </p>
+          {catLimitMsg && <p className="text-red-600 text-[11px] mt-1">{catLimitMsg}</p>}
         </div>
 
         {/* Verified Badge Checkbox */}

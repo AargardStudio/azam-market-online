@@ -62,10 +62,18 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const effectiveTierId = tierId || sortedTiers[0]?.id || 't-basic';
   const effectiveMarketId = marketId;
 
+  const MAX_CATEGORIES = 3;
+
   const toggleCategory = (id: string) => {
-    setCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+    setCategoryIds((prev) => {
+      if (prev.includes(id)) return prev.filter((c) => c !== id);
+      if (prev.length >= MAX_CATEGORIES) {
+        setCatError(`You can select up to ${MAX_CATEGORIES} categories.`);
+        return prev;
+      }
+      setCatError('');
+      return [...prev, id];
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -366,19 +374,24 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
           <div>
             <label className="font-bold text-gray-700 block mb-1.5 text-xs">
               Cloth Category / Categories <span className="text-red-500">*</span>
+              <span className="font-normal text-gray-400"> (select up to {MAX_CATEGORIES})</span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {categories.map((cat) => {
                 const checked = categoryIds.includes(cat.id);
+                const disabled = !checked && categoryIds.length >= MAX_CATEGORIES;
                 return (
                   <button
                     type="button"
                     key={cat.id}
                     onClick={() => toggleCategory(cat.id)}
-                    className={`p-2 rounded-xl border text-left flex items-center gap-1.5 text-xs transition-colors cursor-pointer ${
+                    disabled={disabled}
+                    className={`p-2 rounded-xl border text-left flex items-center gap-1.5 text-xs transition-colors ${
                       checked
-                        ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold'
-                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                        ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold cursor-pointer'
+                        : disabled
+                        ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 cursor-pointer'
                     }`}
                   >
                     <span>{cat.icon}</span>
@@ -387,6 +400,9 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
                 );
               })}
             </div>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {categoryIds.length}/{MAX_CATEGORIES} selected
+            </p>
             {catError && <p className="text-red-600 text-[11px] mt-1">{catError}</p>}
           </div>
 

@@ -56,11 +56,18 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+  const MAX_CATEGORIES = 3;
+  const [catLimitMsg, setCatLimitMsg] = useState('');
+
   const toggleCategory = (catId: string) => {
     if (selectedCatIds.includes(catId)) {
       setSelectedCatIds(selectedCatIds.filter((id) => id !== catId));
+      setCatLimitMsg('');
+    } else if (selectedCatIds.length >= MAX_CATEGORIES) {
+      setCatLimitMsg(`You can select up to ${MAX_CATEGORIES} categories.`);
     } else {
       setSelectedCatIds([...selectedCatIds, catId]);
+      setCatLimitMsg('');
     }
   };
 
@@ -188,20 +195,24 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
         {/* Categories Selection */}
         <div className="text-xs space-y-2">
           <label className="font-bold text-gray-700 block">
-            Fabric Categories Handled (Multi-Select):
+            Fabric Categories Handled (select up to {MAX_CATEGORIES}):
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {allCategories.map((cat) => {
               const checked = selectedCatIds.includes(cat.id);
+              const disabled = !checked && selectedCatIds.length >= MAX_CATEGORIES;
               return (
                 <button
                   type="button"
                   key={cat.id}
                   onClick={() => toggleCategory(cat.id)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                  disabled={disabled}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 ${
                     checked
-                      ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold'
-                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                      ? 'bg-[#E8F5EE] border-[#0F5C3A] text-[#0F5C3A] font-bold cursor-pointer'
+                      : disabled
+                      ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 cursor-pointer'
                   }`}
                 >
                   <span className="text-base">{cat.icon}</span>
@@ -210,6 +221,10 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
               );
             })}
           </div>
+          <p className="text-[11px] text-gray-400">
+            {selectedCatIds.length}/{MAX_CATEGORIES} selected
+          </p>
+          {catLimitMsg && <p className="text-red-600 text-[11px]">{catLimitMsg}</p>}
         </div>
 
         {/* Description */}
