@@ -17,6 +17,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
 }) => {
   const tier = vendor.tier;
   const isFreeTier = !tier || tier.price_usd <= 0;
+  const isExempt = vendor.is_subscription_exempt;
 
   const isActive = vendor.subscription_status === 'active';
   const isPastDue = vendor.subscription_status === 'past_due';
@@ -27,7 +28,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
     : 0;
   const isTrialing = vendor.subscription_status === 'trialing';
   const trialExpired = isTrialing && daysLeft <= 0;
-  const isLive = isActive || isFreeTier || (isTrialing && !trialExpired);
+  const isLive = isExempt || isActive || isFreeTier || (isTrialing && !trialExpired);
 
   return (
     <div className="space-y-6">
@@ -54,8 +55,21 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </p>
       </div>
 
+      {/* Complimentary / exempt account: never asked to pay, ever. */}
+      {isExempt && (
+        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 flex items-center gap-3">
+          <ShieldCheck className="w-6 h-6 text-purple-600 shrink-0" />
+          <div>
+            <div className="font-bold text-sm text-purple-900">Complimentary account</div>
+            <p className="text-xs text-purple-800/80 mt-0.5">
+              Your shop is live in the directory courtesy of Azam Market Online — no subscription or payment required.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Free tier: nothing to pay, nothing to subscribe to. */}
-      {isFreeTier && (
+      {!isExempt && isFreeTier && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-[#0F5C3A] shrink-0" />
           <div>
@@ -68,7 +82,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
       )}
 
       {/* Status banners for paid tiers */}
-      {!isFreeTier && isActive && (
+      {!isExempt && !isFreeTier && isActive && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-[#0F5C3A] shrink-0" />
           <div>
@@ -80,7 +94,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {!isFreeTier && isPastDue && (
+      {!isExempt && !isFreeTier && isPastDue && (
         <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex items-center gap-3">
           <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
           <div>
@@ -92,7 +106,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {!isFreeTier && (isTrialing || isCanceled) && (
+      {!isExempt && !isFreeTier && (isTrialing || isCanceled) && (
         <div
           className={`rounded-2xl p-5 flex items-center gap-3 border ${
             trialExpired || isCanceled
@@ -122,8 +136,8 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </div>
       )}
 
-      {/* Subscribe card — only for paid tiers that aren't active yet */}
-      {!isFreeTier && !isActive && (
+      {/* Subscribe card — only for paid tiers that aren't active or exempt yet */}
+      {!isExempt && !isFreeTier && !isActive && (
         <div className="rounded-2xl border border-[#0F5C3A] bg-gradient-to-b from-emerald-50/60 to-white p-6 space-y-5 shadow-md">
           <div className="flex items-center justify-between">
             <h3 className="font-serif font-bold text-lg text-gray-900">

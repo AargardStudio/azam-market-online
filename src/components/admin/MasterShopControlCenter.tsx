@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Award,
   Sparkles,
+  Gift,
   Sliders,
   Settings,
   Eye,
@@ -808,6 +809,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                               <span>{vendor.shop_name}</span>
                               {vendor.is_verified && <Award className="w-3.5 h-3.5 text-[#C9952A]" />}
                               {vendor.is_featured && <Sparkles className="w-3 h-3 text-amber-500" />}
+                              {vendor.is_subscription_exempt && <Gift className="w-3 h-3 text-purple-500" />}
                             </div>
                             <div className="text-[10px] text-gray-400">
                               {vendor.products?.length || 0} Products • {vendor.catalogues?.length || 0} Lookbooks
@@ -1230,6 +1232,25 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           onChange={async (e) => {
                             await onUpdateVendor(currentInspector.id, { is_featured: e.target.checked });
                             notify(`Featured status ${e.target.checked ? 'enabled' : 'disabled'}`);
+                          }}
+                          className="w-4 h-4 text-[#0F5C3A] rounded-sm"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 cursor-pointer sm:col-span-2">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-4 h-4 text-purple-500" />
+                          <div>
+                            <div className="font-bold text-gray-900">Subscription Exempt (Complimentary)</div>
+                            <div className="text-[11px] text-gray-500">Shop stays live forever, no trial expiry, never asked to pay</div>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={currentInspector.is_subscription_exempt}
+                          onChange={async (e) => {
+                            await onUpdateVendor(currentInspector.id, { is_subscription_exempt: e.target.checked });
+                            notify(`Subscription exemption ${e.target.checked ? 'granted' : 'removed'}`);
                           }}
                           className="w-4 h-4 text-[#0F5C3A] rounded-sm"
                         />

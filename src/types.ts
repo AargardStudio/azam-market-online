@@ -307,11 +307,12 @@ export interface Vendor {
   customization?: ShopCustomization;
   verification?: VendorVerification;
 
-  // Subscription (Stripe, $5/mo flat, 30-day free trial)
+  // Subscription (Stripe, per-tier pricing, 30-day free trial)
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled';
   trial_ends_at: string;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  is_subscription_exempt: boolean; // complimentary account -- never asked to pay
 }
 
 // CNIC (Pakistan national ID) + NTN (tax number). Kept off the main Vendor
