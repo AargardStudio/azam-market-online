@@ -59,7 +59,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   const [success, setSuccess] = useState(false);
 
   const sortedTiers = [...tiers].sort((a, b) => a.price_usd - b.price_usd);
-  const effectiveTierId = tierId || sortedTiers[0]?.id || 't-basic';
+  const effectiveTierId = tierId || sortedTiers.find((t) => t.is_available)?.id || sortedTiers[0]?.id || 't-basic';
   const effectiveMarketId = marketId;
 
   const MAX_CATEGORIES = 3;
@@ -414,17 +414,26 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {sortedTiers.map((tier) => {
                 const checked = effectiveTierId === tier.id;
+                const unavailable = !tier.is_available;
                 return (
                   <button
                     type="button"
                     key={tier.id}
-                    onClick={() => setTierId(tier.id)}
-                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
-                      checked
-                        ? 'bg-[#FDF6E7] border-[#C9952A] ring-1 ring-[#C9952A]'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    disabled={unavailable}
+                    onClick={() => !unavailable && setTierId(tier.id)}
+                    className={`relative p-3 rounded-xl border text-left transition-colors ${
+                      unavailable
+                        ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+                        : checked
+                        ? 'bg-[#FDF6E7] border-[#C9952A] ring-1 ring-[#C9952A] cursor-pointer'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
                     }`}
                   >
+                    {unavailable && (
+                      <span className="absolute top-1.5 right-1.5 bg-gray-200 text-gray-500 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                        Coming Soon
+                      </span>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-gray-900 text-xs">{tier.display_name}</span>
                       {tier.has_verified_badge && <Award className="w-3.5 h-3.5 text-[#C9952A]" />}

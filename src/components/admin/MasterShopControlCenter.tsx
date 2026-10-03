@@ -839,8 +839,8 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           className="bg-emerald-50 text-[#0F5C3A] font-bold text-[11px] px-2 py-1 rounded-lg border border-emerald-200 cursor-pointer focus:outline-none"
                         >
                           {tiers.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.display_name} (${t.price_usd.toLocaleString()})
+                            <option key={t.id} value={t.id} disabled={!t.is_available && vendor.tier_id !== t.id}>
+                              {t.display_name} (${t.price_usd.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
                             </option>
                           ))}
                         </select>
@@ -2212,7 +2212,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
                   >
                     {tiers.map(t => (
-                      <option key={t.id} value={t.id}>{t.display_name} (${t.price_usd.toLocaleString()}/mo)</option>
+                      <option key={t.id} value={t.id} disabled={!t.is_available}>{t.display_name} (${t.price_usd.toLocaleString()}/mo){!t.is_available ? ' — Coming Soon' : ''}</option>
                     ))}
                   </select>
                 </div>

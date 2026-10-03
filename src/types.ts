@@ -37,6 +37,7 @@ export interface SubscriptionTier {
   has_featured_placement: boolean;
   stripe_price_id?: string;
   stripe_payment_link?: string; // per-tier Stripe Payment Link URL
+  is_available: boolean; // false = hidden from new sign-up pickers
 }
 
 export interface Product {

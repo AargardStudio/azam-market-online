@@ -141,8 +141,8 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#0F5C3A]"
             >
               {tiers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.display_name} Tier (${t.price_usd.toLocaleString()} / mo)
+                <option key={t.id} value={t.id} disabled={!t.is_available}>
+                  {t.display_name} Tier (${t.price_usd.toLocaleString()} / mo){!t.is_available ? ' — Coming Soon' : ''}
                 </option>
               ))}
             </select>

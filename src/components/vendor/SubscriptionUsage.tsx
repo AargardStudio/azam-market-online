@@ -37,10 +37,24 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         </span>
         <h2 className="font-serif text-2xl font-bold text-gray-900">Subscription</h2>
         <p className="text-xs text-gray-500">
-          Azam Market Online has three tiers — <strong className="text-gray-900">Basic (free)</strong>,{' '}
-          <strong className="text-gray-900">Standard (${tiers.find((t) => t.name === 'standard')?.price_usd ?? 5}/mo)</strong> and{' '}
-          <strong className="text-gray-900">Premium (${tiers.find((t) => t.name === 'premium')?.price_usd ?? 20}/mo)</strong>.
-          {!isFreeTier && ' New paid shops get a 30-day free trial before billing starts.'}
+          {(() => {
+            const availablePaid = tiers.filter((t) => t.is_available && t.price_usd > 0);
+            const parts = [
+              <strong key="basic" className="text-gray-900">Basic (free)</strong>,
+              ...availablePaid.map((t, i) => (
+                <React.Fragment key={t.id}>
+                  {i === 0 ? ', ' : ' and '}
+                  <strong className="text-gray-900">{t.display_name} (${t.price_usd}/mo)</strong>
+                </React.Fragment>
+              )),
+            ];
+            return (
+              <>
+                Azam Market Online currently offers {parts}.
+                {!isFreeTier && ' New paid shops get a 30-day free trial before billing starts.'}
+              </>
+            );
+          })()}
         </p>
       </div>
 

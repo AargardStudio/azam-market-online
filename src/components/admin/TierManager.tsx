@@ -20,11 +20,16 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {tiers.map((t) => (
-          <div key={t.id} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-4">
+          <div key={t.id} className={`bg-white p-6 rounded-2xl border shadow-2xs space-y-4 ${t.is_available ? 'border-gray-200' : 'border-gray-200 opacity-70'}`}>
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-lg text-gray-900">{t.display_name}</h3>
               {t.has_verified_badge && <ShieldCheck className="w-5 h-5 text-[#C9952A]" />}
             </div>
+            {!t.is_available && (
+              <span className="inline-block bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                Coming Soon — not open for sign-up
+              </span>
+            )}
 
             <div className="font-serif text-3xl font-bold text-[#0F5C3A]">
               {t.price_usd > 0 ? `$${t.price_usd.toLocaleString()}` : 'Free'} <span className="text-xs font-normal text-gray-500">{t.price_usd > 0 ? '/ mo' : ''}</span>
