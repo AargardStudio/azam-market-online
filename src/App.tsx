@@ -34,7 +34,7 @@ import { VendorRegisterPage } from './components/auth/VendorRegisterPage';
 import { AdminLogin } from './components/auth/AdminLogin';
 import { LanguageProvider } from './lib/i18n';
 
-export default function App() {
+function AppInner() {
   // Data States
   const [markets, setMarkets] = useState<Market[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1217,5 +1217,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
   );
 }
