@@ -1,7 +1,13 @@
-// Vercel Serverless Function — mirrors /api/stripe/webhook in server.ts
+// Vercel Serverless Function -- mirrors /api/stripe/webhook in server.ts
 // (local-dev only). Stripe signature verification needs the raw request
 // body, so we turn off Vercel's automatic body parsing for this function
 // and read the raw bytes ourselves.
+//
+// This is sold through a Stripe Payment Link (created once in the Stripe
+// Dashboard), not a server-created Checkout Session, so no STRIPE_SECRET_KEY
+// is needed anywhere -- verifying a webhook signature only needs the
+// endpoint's own signing secret (STRIPE_WEBHOOK_SECRET), via the static
+// Stripe.webhooks.constructEvent, with no Stripe client/API key involved.
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
@@ -26,14 +32,13 @@ export default async function handler(req: any, res: any) {
     return res.status(405).send('Method not allowed');
   }
 
-  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
   const supabaseAdmin =
     process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
       ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       : null;
 
-  if (!stripe || !supabaseAdmin) {
-    return res.status(503).send('Stripe/Supabase not configured on the server.');
+  if (!supabaseAdmin || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).send('Supabase/Stripe webhook secret not configured on the server.');
   }
 
   const rawBody = await readRawBody(req);
@@ -41,7 +46,7 @@ export default async function handler(req: any, res: any) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+    event = Stripe.webhooks.constructEvent(rawBody, sig as string, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err: any) {
     console.error('Stripe webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -51,7 +56,9 @@ export default async function handler(req: any, res: any) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const vendorId = session.metadata?.vendor_id;
+        // Payment Links pass the vendor id through ?client_reference_id=
+        // on the link URL rather than Checkout Session metadata.
+        const vendorId = session.client_reference_id;
         if (vendorId && session.customer && session.subscription) {
           await supabaseAdmin
             .from('vendors')

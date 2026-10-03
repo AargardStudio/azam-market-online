@@ -11,18 +11,19 @@ import { Market, Category, SubscriptionTier, Vendor, Product, Catalogue, Inquiry
 
 const app = express();
 const PORT = 3000;
-
 // ---------------------------------------------------------------------
-// Stripe: $5/month vendor subscription. STRIPE_SECRET_KEY / STRIPE_PRICE_ID
-// / STRIPE_WEBHOOK_SECRET come from the Stripe dashboard (see .env.example).
-// supabaseAdmin uses the service_role key so the webhook can update a
+// Stripe: $5/month vendor subscription, sold through a Stripe Payment Link
+// (created once in the Stripe Dashboard -- no STRIPE_SECRET_KEY needed for
+// that). The frontend (App.tsx's handleSubscribe) redirects the browser
+// straight to that link with ?client_reference_id=<vendorId>, so this
+// webhook is the only server-side piece left: it just listens for Stripe
+// telling us the payment went through and flips the vendor's
+// subscription_status. Verifying a webhook signature needs only the
+// endpoint's signing secret (STRIPE_WEBHOOK_SECRET) -- never the account's
+// secret API key -- so Stripe.webhooks.constructEvent is called as a
+// static method below, with no Stripe client/API key involved at all.
+// supabaseAdmin uses the service_role key so this route can update a
 // vendor's subscription_status even though RLS blocks that from the client.
-// Both are undefined until the real keys are filled in — the two routes
-// below fail gracefully with a clear error until then.
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
-
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -32,13 +33,13 @@ const supabaseAdmin =
 // route (and only this route) is registered with express.raw(), BEFORE the
 // global express.json() below picks up every other route.
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  if (!stripe || !supabaseAdmin) {
-    return res.status(503).send('Stripe/Supabase not configured on the server.');
+  if (!supabaseAdmin || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).send('Supabase/Stripe webhook secret not configured on the server.');
   }
   const sig = req.headers['stripe-signature'];
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET || '');
+    event = Stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err: any) {
     console.error('Stripe webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -48,7 +49,9 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const vendorId = session.metadata?.vendor_id;
+        // Payment Links pass the vendor id through ?client_reference_id=
+        // on the link URL rather than Checkout Session metadata.
+        const vendorId = session.client_reference_id;
         if (vendorId && session.customer && session.subscription) {
           await supabaseAdmin
             .from('vendors')
@@ -87,44 +90,6 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 });
 
 app.use(express.json());
-
-// Starts a Stripe Checkout session for a vendor's $5/month subscription.
-// The frontend (SubscriptionUsage.tsx via App.tsx's handleSubscribe) posts
-// { vendorId } here and redirects the browser to the returned url.
-app.post('/api/stripe/create-checkout-session', async (req, res) => {
-  if (!stripe || !supabaseAdmin) {
-    return res.status(503).json({ error: 'Stripe is not configured yet. Add STRIPE_SECRET_KEY, STRIPE_PRICE_ID, SUPABASE_SERVICE_ROLE_KEY and STRIPE_WEBHOOK_SECRET to .env.' });
-  }
-  const { vendorId } = req.body;
-  if (!vendorId) return res.status(400).json({ error: 'vendorId is required' });
-
-  try {
-    const { data: vendor, error } = await supabaseAdmin
-      .from('vendors')
-      .select('id, email, shop_name, stripe_customer_id')
-      .eq('id', vendorId)
-      .single();
-    if (error || !vendor) return res.status(404).json({ error: 'Vendor not found' });
-
-    const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: vendor.stripe_customer_id || undefined,
-      customer_email: vendor.stripe_customer_id ? undefined : vendor.email,
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      success_url: `${appUrl}/?subscribed=1`,
-      cancel_url: `${appUrl}/`,
-      metadata: { vendor_id: vendor.id },
-      subscription_data: { metadata: { vendor_id: vendor.id } },
-    });
-
-    res.json({ url: session.url });
-  } catch (err: any) {
-    console.error('Error creating Stripe checkout session:', err);
-    res.status(500).json({ error: err.message || 'Could not create checkout session' });
-  }
-});
 
 // In-Memory Database Store
 let markets: Market[] = [...INITIAL_MARKETS];

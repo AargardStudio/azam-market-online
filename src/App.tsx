@@ -631,31 +631,29 @@ export default function App() {
     }
   };
 
-  // Starts a Stripe Checkout session for the vendor's $5/month subscription
-  // (trial gating / visibility is enforced by RLS server-side; this just
-  // sends the vendor to Stripe's hosted checkout page and back).
+  // Sends the vendor to Stripe's hosted checkout for the $5/month
+  // subscription via a Stripe Payment Link -- a static URL created once
+  // in the Stripe Dashboard, so no backend call and no STRIPE_SECRET_KEY
+  // are needed just to start checkout. ?client_reference_id= ties the
+  // resulting Checkout Session back to this vendor so the webhook (see
+  // api/stripe/webhook.ts) knows whose subscription_status to flip once
+  // Stripe confirms payment. Trial gating / visibility is enforced by RLS
+  // server-side.
   const [subscribeLoading, setSubscribeLoading] = useState(false);
-  const handleSubscribe = async (vendorId: string) => {
-    setSubscribeLoading(true);
-    try {
-      const res = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId }),
-      });
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        console.error('Stripe checkout session error:', data?.error);
-        alert(data?.error || 'Could not start checkout. Please try again.');
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Could not reach the payments server. Please try again.');
-    } finally {
-      setSubscribeLoading(false);
+  const handleSubscribe = (vendorId: string) => {
+    const paymentLink = import.meta.env.VITE_STRIPE_PAYMENT_LINK as string | undefined;
+    if (!paymentLink) {
+      alert('Subscription checkout is not configured yet. Please contact Azam Market Online support.');
+      return;
     }
+    setSubscribeLoading(true);
+    const vendor = vendors.find((v) => v.id === vendorId);
+    const url = new URL(paymentLink);
+    url.searchParams.set('client_reference_id', vendorId);
+    if (vendor?.email) {
+      url.searchParams.set('prefilled_email', vendor.email);
+    }
+    window.location.href = url.toString();
   };
 
   // If Stripe redirected back with ?subscribed=1, refetch so the dashboard
