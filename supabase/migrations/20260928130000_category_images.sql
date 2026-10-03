@@ -6,3 +6,5 @@ update categories set image_url = '/categories/bases.jpg' where slug = 'bases';
 update categories set image_url = '/categories/shawls-dupattas.jpg' where slug = 'shawls-dupattas';
 update categories set image_url = '/categories/mens-wear.jpg' where slug = 'mens-wear';
 update categories set image_url = '/categories/brands.jpg' where slug = 'brands';
+update categories set image_url = '/categories/home-textile.jpg' where slug = 'home-textile';
+update categories set image_url = '/categories/miscellaneous.jpg' where slug = 'miscellaneous';
