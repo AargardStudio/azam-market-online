@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ExternalLink,
   ArrowLeft,
-  Eye,
   ShoppingBag,
   ShieldCheck,
   Shield,
@@ -22,9 +21,7 @@ import {
   Truck,
   Sparkles,
   Tag,
-  PhoneCall,
   MessageSquare,
-  BarChart3,
   TrendingUp,
   HelpCircle,
   Landmark,
@@ -380,106 +377,6 @@ export const VendorShop: React.FC<VendorShopProps> = ({
               )}
             </div>
           </div>
-
-          {/* STOREFRONT ENGAGEMENT STATS BAR (Shop Views, Click to WhatsApp, Click to Message, Click to Call) */}
-          {(cust.show_stats !== false && (cust.stats_display?.enabled ?? true)) && (
-            <div className="mt-5 pt-4 border-t border-gray-100">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Verified Stall Engagement & Buyer Activity</span>
-                  <span className="text-[10px] text-gray-400 font-normal hidden sm:inline">• Live marketplace statistics</span>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  Verified Trading Stall
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* 1. Shop Views */}
-                {(cust.stats_display?.show_views ?? true) && (
-                  <div className="bg-gray-50/90 rounded-xl p-3 border border-gray-200/90 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-[#0F5C3A] flex items-center justify-center shrink-0">
-                      <Eye className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Shop Views</div>
-                      <div className="font-serif text-lg font-bold text-gray-900 leading-tight">
-                        {(vendor.profile_views || 1420).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Click to WhatsApp */}
-                {(cust.stats_display?.show_whatsapp ?? true) && (
-                  <button
-                    onClick={() => handleWhatsAppInquiry()}
-                    title="Click to initiate direct WhatsApp inquiry"
-                    className="bg-gray-50/90 hover:bg-green-50/80 rounded-xl p-3 border border-gray-200/90 hover:border-green-300 transition-all flex items-center gap-3 text-left cursor-pointer group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-green-50 text-[#25D366] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <MessageCircle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide group-hover:text-green-700">
-                        WhatsApp Clicks
-                      </div>
-                      <div className="font-serif text-lg font-bold text-gray-900 leading-tight flex items-center gap-1.5">
-                        {(vendor.whatsapp_clicks || 348).toLocaleString()}
-                        <span className="text-[10px] font-sans font-bold text-[#25D366]">Chat →</span>
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 3. Click to Message */}
-                {(cust.stats_display?.show_messages ?? true) && (
-                  <button
-                    onClick={handleMessageInquiry}
-                    title="Click to send direct inquiry email/message"
-                    className="bg-gray-50/90 hover:bg-purple-50/80 rounded-xl p-3 border border-gray-200/90 hover:border-purple-300 transition-all flex items-center gap-3 text-left cursor-pointer group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <MessageSquare className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide group-hover:text-purple-700">
-                        Message Clicks
-                      </div>
-                      <div className="font-serif text-lg font-bold text-gray-900 leading-tight flex items-center gap-1.5">
-                        {(vendor.message_clicks ?? vendor.email_clicks ?? 82).toLocaleString()}
-                        <span className="text-[10px] font-sans font-bold text-purple-600">Inquire →</span>
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {/* 4. Click to Call */}
-                {(cust.stats_display?.show_calls ?? true) && (
-                  <button
-                    onClick={handleDirectCall}
-                    title="Click to dial stall phone"
-                    className="bg-gray-50/90 hover:bg-blue-50/80 rounded-xl p-3 border border-gray-200/90 hover:border-blue-300 transition-all flex items-center gap-3 text-left cursor-pointer group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <PhoneCall className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide group-hover:text-blue-700">
-                        Call Clicks
-                      </div>
-                      <div className="font-serif text-lg font-bold text-gray-900 leading-tight flex items-center gap-1.5">
-                        {(vendor.call_clicks ?? 165).toLocaleString()}
-                        <span className="text-[10px] font-sans font-bold text-blue-600">Dial →</span>
-                      </div>
-                    </div>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Navigation Tabs */}
           <div className="mt-6 border-b border-gray-200 flex gap-6 text-sm font-semibold">

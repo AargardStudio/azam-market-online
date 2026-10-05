@@ -30,7 +30,6 @@ import {
   Clock,
   Truck,
   CreditCard,
-  BarChart3,
   MessageSquare,
   PhoneCall,
   TrendingUp,
@@ -222,7 +221,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState<
-    'theme' | 'header' | 'hero' | 'contact' | 'stats' | 'pricing' | 'blocks' | 'publishing'
+    'theme' | 'header' | 'hero' | 'contact' | 'pricing' | 'blocks' | 'publishing'
   >('theme');
   const [devicePreview, setDevicePreview] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [isSaving, setIsSaving] = useState(false);
@@ -462,16 +461,6 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>Buttons</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`py-2 px-1 rounded-xl flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                  activeTab === 'stats' ? 'bg-[#0F5C3A] text-white shadow-xs' : 'hover:bg-gray-100'
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>Stats</span>
               </button>
 
               <button
@@ -1167,206 +1156,6 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                       </label>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* 5. STOREFRONT ENGAGEMENT STATS DISPLAY */}
-            {activeTab === 'stats' && (
-              <div className="space-y-5">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-[#0F5C3A]" />
-                    Storefront Stats Display
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Display verified buyer inquiry numbers (Shop Views, WhatsApp clicks, Messages, and Calls) to build buyer trust.
-                  </p>
-                </div>
-
-                {/* Master Switch */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-bold text-gray-900">Show Engagement Stats Bar</div>
-                      <div className="text-[11px] text-gray-500">
-                        Displays the live statistics banner directly underneath your stall header
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={config.show_stats !== false && (config.stats_display?.enabled ?? true)}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setConfig((prev) => ({
-                            ...prev,
-                            show_stats: val,
-                            stats_display: {
-                              ...(prev.stats_display || {
-                                enabled: true,
-                                show_views: true,
-                                show_whatsapp: true,
-                                show_messages: true,
-                                show_calls: true,
-                              }),
-                              enabled: val,
-                            },
-                          }));
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0F5C3A]"></div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Granular Stat Toggles */}
-                <div className="space-y-3 pt-1">
-                  <div className="text-xs font-bold text-gray-800">Select Visible Metrics:</div>
-
-                  {/* 1. Shop Views */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#0F5C3A] flex items-center justify-center">
-                        <Eye className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Shop Views</div>
-                        <div className="text-[11px] text-gray-500">Total stall profile impressions by wholesale buyers</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={config.stats_display?.show_views ?? true}
-                      onChange={(e) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          stats_display: {
-                            ...(prev.stats_display || {
-                              enabled: true,
-                              show_views: true,
-                              show_whatsapp: true,
-                              show_messages: true,
-                              show_calls: true,
-                            }),
-                            show_views: e.target.checked,
-                          },
-                        }))
-                      }
-                      className="w-4 h-4 text-[#0F5C3A] rounded-sm focus:ring-[#0F5C3A]"
-                    />
-                  </label>
-
-                  {/* 2. Click to WhatsApp */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 text-[#25D366] flex items-center justify-center">
-                        <MessageCircle className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Click to WhatsApp</div>
-                        <div className="text-[11px] text-gray-500">Inquiries started directly through WhatsApp button</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={config.stats_display?.show_whatsapp ?? true}
-                      onChange={(e) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          stats_display: {
-                            ...(prev.stats_display || {
-                              enabled: true,
-                              show_views: true,
-                              show_whatsapp: true,
-                              show_messages: true,
-                              show_calls: true,
-                            }),
-                            show_whatsapp: e.target.checked,
-                          },
-                        }))
-                      }
-                      className="w-4 h-4 text-[#25D366] rounded-sm focus:ring-[#25D366]"
-                    />
-                  </label>
-
-                  {/* 3. Click to Message */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                        <MessageSquare className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Click to Message</div>
-                        <div className="text-[11px] text-gray-500">Direct message and email inquiries sent to vendor</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={config.stats_display?.show_messages ?? true}
-                      onChange={(e) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          stats_display: {
-                            ...(prev.stats_display || {
-                              enabled: true,
-                              show_views: true,
-                              show_whatsapp: true,
-                              show_messages: true,
-                              show_calls: true,
-                            }),
-                            show_messages: e.target.checked,
-                          },
-                        }))
-                      }
-                      className="w-4 h-4 text-purple-600 rounded-sm focus:ring-purple-500"
-                    />
-                  </label>
-
-                  {/* 4. Click to Call */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <PhoneCall className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Click to Call</div>
-                        <div className="text-[11px] text-gray-500">Direct telephone dials made to stall owner</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={config.stats_display?.show_calls ?? true}
-                      onChange={(e) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          stats_display: {
-                            ...(prev.stats_display || {
-                              enabled: true,
-                              show_views: true,
-                              show_whatsapp: true,
-                              show_messages: true,
-                              show_calls: true,
-                            }),
-                            show_calls: e.target.checked,
-                          },
-                        }))
-                      }
-                      className="w-4 h-4 text-blue-600 rounded-sm focus:ring-blue-500"
-                    />
-                  </label>
-                </div>
-
-                {/* Conversion Tip Box */}
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                    Wholesale Conversion Impact
-                  </div>
-                  <p className="text-[11px] text-emerald-700 leading-relaxed">
-                    Stalls in Azam Market displaying verified views and WhatsApp activity receive up to <strong>38% more inbound roll inquiries</strong> from verified out-of-city buyers in Faisalabad, Gujranwala, and Karachi.
-                  </p>
                 </div>
               </div>
             )}
@@ -2163,70 +1952,6 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* LIVE SIMULATED ENGAGEMENT STATS BAR */}
-              {(config.show_stats !== false && (config.stats_display?.enabled ?? true)) && (
-                <div className="bg-white border-b border-gray-100 px-4 py-2.5">
-                  <div className="flex items-center justify-between gap-1 mb-2">
-                    <span className="text-[10px] font-bold text-gray-700 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Verified Trade Activity
-                    </span>
-                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      Live Stats
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {(config.stats_display?.show_views ?? true) && (
-                      <div className="bg-gray-50 rounded-lg p-1.5 border border-gray-200 flex items-center gap-2">
-                        <Eye className="w-3.5 h-3.5 text-[#0F5C3A] shrink-0" />
-                        <div>
-                          <div className="text-[9px] text-gray-500 leading-none">Shop Views</div>
-                          <div className="text-xs font-bold font-serif text-gray-900 leading-tight">
-                            {(vendor.profile_views || 1420).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {(config.stats_display?.show_whatsapp ?? true) && (
-                      <div className="bg-gray-50 rounded-lg p-1.5 border border-gray-200 flex items-center gap-2">
-                        <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
-                        <div>
-                          <div className="text-[9px] text-gray-500 leading-none">WhatsApp</div>
-                          <div className="text-xs font-bold font-serif text-gray-900 leading-tight">
-                            {(vendor.whatsapp_clicks || 348).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {(config.stats_display?.show_messages ?? true) && (
-                      <div className="bg-gray-50 rounded-lg p-1.5 border border-gray-200 flex items-center gap-2">
-                        <MessageSquare className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                        <div>
-                          <div className="text-[9px] text-gray-500 leading-none">Messages</div>
-                          <div className="text-xs font-bold font-serif text-gray-900 leading-tight">
-                            {(vendor.message_clicks ?? vendor.email_clicks ?? 82).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {(config.stats_display?.show_calls ?? true) && (
-                      <div className="bg-gray-50 rounded-lg p-1.5 border border-gray-200 flex items-center gap-2">
-                        <PhoneCall className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <div>
-                          <div className="text-[9px] text-gray-500 leading-none">Calls</div>
-                          <div className="text-xs font-bold font-serif text-gray-900 leading-tight">
-                            {(vendor.call_clicks ?? 165).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* SHOP NAVIGATION TABS SIMULATOR */}
               <div className="bg-white border-b border-gray-200 px-4 flex gap-4 text-xs font-semibold">
