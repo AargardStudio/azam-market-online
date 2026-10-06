@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCeoMemoir,
 }) => {
   const [showMarketMenu, setShowMarketMenu] = useState(false);
-  const activeMarketObj = markets.find(m => m.slug === currentMarket) || markets[0];
+  const activeMarketObj = markets.find(m => m.slug === currentMarket);
   const { lang, setLang, t } = useLanguage();
 
   return (
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>{activeMarketObj ? activeMarketObj.name : 'Azam Cloth Market'}</span>
+              <span>{activeMarketObj ? activeMarketObj.name : 'All Markets'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             </button>
 
@@ -99,6 +99,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   Select Market Directory
                 </div>
+                <button
+                  onClick={() => {
+                    onMarketChange('');
+                    setShowMarketMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-emerald-50 transition-colors ${
+                    currentMarket === '' ? 'font-bold text-[#0F5C3A] bg-emerald-50/50' : 'text-gray-700'
+                  }`}
+                >
+                  <span>All Markets</span>
+                  <span className="text-[10px] text-gray-400">Pakistan</span>
+                </button>
                 {markets.map(m => (
                   <button
                     key={m.id}

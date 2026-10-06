@@ -56,7 +56,9 @@ function AppInner() {
   const [adminTab, setAdminTab] = useState<'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets'>('master_control');
 
   // Directory Filters State
-  const [currentMarket, setCurrentMarket] = useState<string>('azam-cloth-market');
+  // Show the complete directory by default. Visitors can narrow the list to a
+  // specific market from the navbar; an empty value represents "All Markets".
+  const [currentMarket, setCurrentMarket] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
