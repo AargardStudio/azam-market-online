@@ -6,6 +6,7 @@ import { VendorHero } from './components/public/VendorHero';
 import { CategoryGrid } from './components/public/CategoryGrid';
 import { CategoryShopRows } from './components/public/CategoryShopRows';
 import { TrustFeatures } from './components/public/TrustFeatures';
+import { HomeSlideshow } from './components/public/HomeSlideshow';
 import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
@@ -857,6 +858,28 @@ function AppInner() {
                       window.history.pushState({}, '', '/register');
                       setCurrentView('vendor_register');
                     }}
+                  />
+                )}
+
+                {/* Mid-page promotional slideshow */}
+                {!selectedCategory && !searchQuery && (
+                  <HomeSlideshow
+                    slides={[
+                      {
+                        image: '/slideshow/yousaf-jameel-1.jpg',
+                        subtitle: 'Featured Stall',
+                        title: 'Yousaf Jameel & Co. — Premium Lawn & Stitched Fabric',
+                        ctaLabel: 'Visit Stall',
+                        onCtaClick: () => handleOpenVendorShop('yousaf-jameel-co-musp47rl'),
+                      },
+                      {
+                        image: '/slideshow/yousaf-jameel-2.jpg',
+                        subtitle: 'Featured Stall',
+                        title: 'Yousaf Jameel & Co. — Wholesale Rates, Direct from Lahore',
+                        ctaLabel: 'Visit Stall',
+                        onCtaClick: () => handleOpenVendorShop('yousaf-jameel-co-musp47rl'),
+                      },
+                    ]}
                   />
                 )}
 
