@@ -174,23 +174,22 @@ function AppInner() {
   }, []);
 
   // ---------------------------------------------------------------------
-  // Supabase data layer. VENDOR_SELECT hydrates a vendor row the same shape
-  // the rest of the app already expects (nested tier/market/customization/
-  // products/catalogues/categories), so every component below this line
-  // needed no changes.
+  // Keep the directory query lightweight. Product images are currently stored
+  // as large data URLs, so embedding every product here can exceed Supabase's
+  // statement timeout and prevent otherwise valid vendors from rendering.
   // ---------------------------------------------------------------------
   const VENDOR_SELECT = `
     *,
     tier:subscription_tiers(*),
     market:markets(*),
     customization:shop_customizations(*),
-    products(*),
     catalogues(*),
     vendor_categories(category:categories(*))
   `;
 
   const hydrateVendor = (row: any): Vendor => ({
     ...row,
+    products: row.products || [],
     categories: (row.vendor_categories || [])
       .map((vc: any) => vc.category)
       .filter(Boolean),
