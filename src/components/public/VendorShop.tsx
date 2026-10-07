@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { Vendor, Product, Catalogue, DEFAULT_SHOP_CUSTOMIZATION } from '../../types';
 import { ContactBar } from './ContactBar';
+import { Disclaimer } from './Disclaimer';
 
 interface VendorShopProps {
   vendor: Vendor;
@@ -139,6 +140,9 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 
   return (
     <div className={`min-h-screen ${bgClass} pb-28 ${fontClass}`}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-3">
+        <Disclaimer compact />
+      </div>
       {/* 1. TOP ANNOUNCEMENT BANNER (IF ENABLED) */}
       {cust.show_announcement && (
         <div

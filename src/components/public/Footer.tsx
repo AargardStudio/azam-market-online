@@ -1,4 +1,5 @@
 import React from 'react';
+import { Disclaimer } from './Disclaimer';
 import {
   MapPin,
   Phone,
@@ -32,6 +33,9 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   return (
     <footer className="bg-gradient-to-b from-gray-900 via-gray-900 to-black text-gray-300 border-t border-gray-800 mt-16 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <Disclaimer dark />
+      </div>
       {/* Main Footer Directory Columns */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6">
