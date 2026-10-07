@@ -2574,7 +2574,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                                 </h3>
                                 <div className="h-32 bg-gray-900 rounded-lg relative overflow-hidden flex items-center justify-center">
                                   <img
-                                    src={vendor.cover_image_url || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80'}
+                                    src={vendor.cover_url || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80'}
                                     alt="Video preview"
                                     className="w-full h-full object-cover opacity-60"
                                   />

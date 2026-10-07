@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { Vendor, Product, Catalogue, SubscriptionTier, Market, Category, ShopCustomization, PaymentTransaction } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
+import { describeError } from '../../lib/errors';
 import { PaymentCheckoutModal } from '../common/PaymentCheckoutModal';
 
 interface MasterShopControlCenterProps {
@@ -70,7 +71,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
   markets,
   categories,
   onRefreshData,
-  onUpdateVendor,
+  onUpdateVendor: rawUpdateVendor,
   onDeleteVendor,
   onEnterVendorDashboard,
   onViewLiveShop,
@@ -121,6 +122,24 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
   // Notification helper
   const notify = (msg: string, type: 'success' | 'info' | 'error' = 'success') => {
     if (onNotify) onNotify(msg, type);
+  };
+
+  // Every admin edit goes through here so a failed save is reported with the
+  // real reason instead of silently doing nothing (and never shows "updated").
+  const onUpdateVendor = async (vendorId: string, data: Partial<Vendor>) => {
+    try {
+      await rawUpdateVendor(vendorId, data);
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : (e as any)?.message || '';
+      const missingCol = /column .* does not exist|schema cache|Could not find the .* column/i.test(raw);
+      notify(
+        missingCol
+          ? `Not saved: the database is missing a column this change needs. Run the latest SQL migration in Supabase. [${raw}]`
+          : `Not saved: ${describeError(e, 'The change could not be saved.')}`,
+        'error'
+      );
+      throw e;
+    }
   };
 
   // Cross-Stall Aggregated Metrics
@@ -1294,9 +1313,9 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                         aspect="cover"
                         label="Hero Cover Banner"
                         description="Wide banner displayed on the stall's showcase page."
-                        value={currentInspector.cover_image_url}
+                        value={currentInspector.cover_url || ''}
                         onChange={async (newUrl) => {
-                          await onUpdateVendor(currentInspector.id, { cover_image_url: newUrl });
+                          await onUpdateVendor(currentInspector.id, { cover_url: newUrl || null });
                           notify('Cover banner updated');
                         }}
                       />

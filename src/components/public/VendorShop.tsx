@@ -1097,7 +1097,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 
                           <div className="relative rounded-2xl overflow-hidden bg-gray-900 h-64 sm:h-80 flex items-center justify-center text-white group cursor-pointer border border-gray-800">
                             <img
-                              src={vendor.cover_image_url || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80'}
+                              src={vendor.cover_url || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80'}
                               alt="Video Preview"
                               className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
                             />

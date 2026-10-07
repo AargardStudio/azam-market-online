@@ -740,6 +740,7 @@ function AppInner() {
       }
     } catch (e) {
       console.error('Error updating vendor:', e);
+      throw e;
     }
   };
 
