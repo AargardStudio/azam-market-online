@@ -493,23 +493,51 @@ function AppInner() {
   };
 
   const handleSaveShopProfile = async (updatedData: Partial<Vendor>) => {
-    if (!activeVendorInDashboard) return;
+    if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
-      const { categories: _categories, products: _products, catalogues: _catalogues, tier: _tier, market: _market, customization: _customization, ...columnData } = updatedData as any;
+      const { categories: nextCategories, products: _products, catalogues: _catalogues, tier: _tier, market: _market, customization: _customization, ...columnData } = updatedData as any;
       const { error } = await supabase
         .from('vendors')
         .update(columnData)
         .eq('id', activeVendorInDashboard.id);
       if (error) throw error;
+
+      // Categories live in the vendor_categories join table, not on the vendor row,
+      // so they have to be synced separately (previously edits here were silently dropped).
+      if (Array.isArray(nextCategories)) {
+        const nextIds: string[] = nextCategories.map((c: { id: string }) => c.id);
+        if (nextIds.length > 3) throw new Error('You can select up to 3 categories.');
+        const currentIds: string[] = (activeVendorInDashboard.categories || []).map((c) => c.id);
+        const toInsert = nextIds.filter((id) => !currentIds.includes(id));
+        const toDelete = currentIds.filter((id) => !nextIds.includes(id));
+
+        // Insert first so a failure never leaves the shop with zero categories.
+        if (toInsert.length > 0) {
+          const { error: insErr } = await supabase
+            .from('vendor_categories')
+            .insert(toInsert.map((category_id) => ({ vendor_id: activeVendorInDashboard.id, category_id })));
+          if (insErr) throw insErr;
+        }
+        if (toDelete.length > 0) {
+          const { error: delErr } = await supabase
+            .from('vendor_categories')
+            .delete()
+            .eq('vendor_id', activeVendorInDashboard.id)
+            .in('category_id', toDelete);
+          if (delErr) throw delErr;
+        }
+      }
+
       const hydrated = await refetchVendor(activeVendorInDashboard.id);
       if (hydrated) applyVendorUpdate(hydrated);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
   const handleSaveCustomization = async (customization: ShopCustomization, publish: boolean) => {
-    if (!activeVendorInDashboard) return;
+    if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
       const now = new Date().toISOString();
       const { error } = await supabase
@@ -532,7 +560,7 @@ function AppInner() {
   };
 
   const handleAddProduct = async (prodData: Partial<Product>) => {
-    if (!activeVendorInDashboard) return;
+    if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
       const { error } = await supabase
         .from('products')
@@ -542,6 +570,7 @@ function AppInner() {
       if (hydrated) applyVendorUpdate(hydrated);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -555,6 +584,7 @@ function AppInner() {
       }
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -568,11 +598,12 @@ function AppInner() {
       }
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
   const handleAddCatalogue = async (catData: Partial<Catalogue>) => {
-    if (!activeVendorInDashboard) return;
+    if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
       const { error } = await supabase
         .from('catalogues')
@@ -582,6 +613,7 @@ function AppInner() {
       if (hydrated) applyVendorUpdate(hydrated);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -595,6 +627,7 @@ function AppInner() {
       }
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 

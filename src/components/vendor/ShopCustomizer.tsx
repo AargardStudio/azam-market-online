@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Palette,
   Layout,
@@ -43,10 +43,13 @@ import {
   Wallet,
   CheckCircle2,
   Play,
+  Loader2,
 } from 'lucide-react';
 import { Vendor, ShopCustomization, DEFAULT_SHOP_CUSTOMIZATION, Product, Catalogue, PaymentTransaction } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
 import { PaymentCheckoutModal } from '../common/PaymentCheckoutModal';
+import { ErrorBanner, SaveStatus, useUnsavedChangesGuard } from './SaveFeedback';
+import { describeError } from '../../lib/errors';
 
 interface ShopCustomizerProps {
   vendor: Vendor;
@@ -208,17 +211,26 @@ export const ALL_AVAILABLE_BLOCKS = [
   { id: 'contact_cta', label: 'Direct Stall Owner Contact CTA', defaultTitle: 'Direct Wholesale Inquiry' },
 ];
 
+const initialConfigFor = (v: Vendor): ShopCustomization =>
+  v.customization ? { ...DEFAULT_SHOP_CUSTOMIZATION, ...v.customization } : { ...DEFAULT_SHOP_CUSTOMIZATION };
+
+// Fields the server stamps on save are ignored when deciding if there are unsaved edits.
+const snapshotOf = (cfg: ShopCustomization): string => {
+  const { is_published: _p, published_at: _pa, last_saved_at: _ls, ...rest } = cfg as any;
+  return JSON.stringify(rest);
+};
+
 export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
   vendor,
   onSaveCustomization,
   onOpenLiveShop,
 }) => {
   // Initialize config with existing customization or default fallback
-  const [config, setConfig] = useState<ShopCustomization>(() => {
-    return vendor.customization
-      ? { ...DEFAULT_SHOP_CUSTOMIZATION, ...vendor.customization }
-      : { ...DEFAULT_SHOP_CUSTOMIZATION };
-  });
+  const [config, setConfig] = useState<ShopCustomization>(() => initialConfigFor(vendor));
+  const [savedConfig, setSavedConfig] = useState<ShopCustomization>(() => initialConfigFor(vendor));
+  const savedSnapshot = useMemo(() => snapshotOf(savedConfig), [savedConfig]);
+  const [saveError, setSaveError] = useState('');
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const [activeTab, setActiveTab] = useState<
     'theme' | 'header' | 'hero' | 'contact' | 'pricing' | 'blocks' | 'publishing'
@@ -247,6 +259,9 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  const dirty = useMemo(() => snapshotOf(config) !== savedSnapshot, [config, savedSnapshot]);
+  useUnsavedChangesGuard(dirty);
+
   const handleApplyPreset = (preset: (typeof PRESET_THEMES)[0]) => {
     setConfig((prev) => ({
       ...prev,
@@ -258,23 +273,64 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
     showToast(`Applied preset: ${preset.name}`);
   };
 
-  const handleSaveDraft = async () => {
+  /**
+   * Persist the current edits WITHOUT changing whether the shop is live.
+   * (Previously "Save Draft" always flipped is_published to false, which
+   * silently took an already-live customized shop offline for buyers.)
+   */
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveError('');
     try {
-      setIsSaving(true);
-      await onSaveCustomization({ ...config, is_published: false }, false);
-      setConfig((prev) => ({ ...prev, is_published: false, last_saved_at: new Date().toISOString() }));
-      showToast('Draft saved successfully! Click "Publish" when ready to make changes live.');
+      const now = new Date().toISOString();
+      const live = !!config.is_published;
+      const updated = { ...config, last_saved_at: now, ...(live ? { published_at: now } : {}) };
+      await onSaveCustomization(updated, live);
+      setConfig(updated);
+      setSavedConfig(updated);
+      setSavedAt(new Date());
+      showToast(live ? 'Saved — your changes are live on the shop.' : 'Draft saved. Click "Publish" when ready to make it live.');
     } catch (err) {
       console.error(err);
-      showToast('Error saving draft');
+      setSaveError(describeError(err, 'Your changes could not be saved.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /** Explicitly take the customized shop offline and keep edits as a draft. */
+  const handleSaveDraft = async () => {
+    if (
+      config.is_published &&
+      !window.confirm(
+        'This takes your customized shop offline: buyers will see the plain default layout until you publish again. Continue?'
+      )
+    ) {
+      return;
+    }
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      const now = new Date().toISOString();
+      const updated = { ...config, is_published: false, last_saved_at: now };
+      await onSaveCustomization(updated, false);
+      setConfig(updated);
+      setSavedConfig(updated);
+      setSavedAt(new Date());
+      showToast('Saved as draft. Your shop is not live until you publish.');
+    } catch (err) {
+      console.error(err);
+      setSaveError(describeError(err, 'Your draft could not be saved.'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handlePublish = async () => {
+    setIsSaving(true);
+    setSaveError('');
     try {
-      setIsSaving(true);
       const now = new Date().toISOString();
       const updated = {
         ...config,
@@ -284,10 +340,12 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
       };
       await onSaveCustomization(updated, true);
       setConfig(updated);
+      setSavedConfig(updated);
+      setSavedAt(new Date());
       showToast('🎉 Shop changes published live to Azam Market Online directory!');
     } catch (err) {
       console.error(err);
-      showToast('Error publishing shop');
+      setSaveError(describeError(err, 'Your shop could not be published.'));
     } finally {
       setIsSaving(false);
     }
@@ -396,25 +454,37 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
             <span>Live View Shop</span>
           </button>
 
-          <button
-            onClick={handleSaveDraft}
-            disabled={isSaving}
-            className="bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-gray-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Save className="w-4 h-4 text-gray-500" />
-            <span>Save Draft</span>
-          </button>
+          <SaveStatus dirty={dirty} saving={isSaving} savedAt={savedAt} hasError={!!saveError} />
 
           <button
-            onClick={handlePublish}
-            disabled={isSaving}
-            className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+            onClick={handleSave}
+            disabled={isSaving || !dirty}
+            className="bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-gray-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Send className="w-4 h-4" />
-            <span>Publish Changes</span>
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : <Save className="w-4 h-4 text-gray-500" />}
+            <span>{config.is_published ? 'Save changes' : 'Save draft'}</span>
           </button>
+
+          {!config.is_published && (
+            <button
+              onClick={handlePublish}
+              disabled={isSaving}
+              className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>Publish Changes</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {saveError && (
+        <ErrorBanner
+          message={saveError}
+          onDismiss={() => setSaveError('')}
+          onRetry={dirty ? () => void handleSave() : undefined}
+        />
+      )}
 
       {/* Main Studio Grid: Left Settings / Right Interactive Live Preview */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -1709,28 +1779,92 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    onClick={handlePublish}
-                    disabled={isSaving}
-                    className="flex-1 bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white text-xs font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>Publish Changes to Live Shop</span>
-                  </button>
+                {config.is_published ? (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving || !dirty}
+                        className="flex-1 bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                      >
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        <span>{dirty ? 'Save changes (goes live immediately)' : 'All changes saved'}</span>
+                      </button>
 
-                  <button
-                    onClick={handleSaveDraft}
-                    disabled={isSaving}
-                    className="bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold py-3 px-4 rounded-xl border border-gray-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Save className="w-4 h-4 text-gray-500" />
-                    <span>Save Draft</span>
-                  </button>
-                </div>
+                      <button
+                        onClick={handleSaveDraft}
+                        disabled={isSaving}
+                        className="bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold py-3 px-4 rounded-xl border border-gray-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <span>Take offline</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Your shop is live, so saved edits appear to buyers right away. "Take offline" switches the
+                      customized shop back to a draft.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      onClick={handlePublish}
+                      disabled={isSaving}
+                      className="flex-1 bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white text-xs font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Publish Changes to Live Shop</span>
+                    </button>
+
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving || !dirty}
+                      className="bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-800 text-xs font-bold py-3 px-4 rounded-xl border border-gray-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Save className="w-4 h-4 text-gray-500" />
+                      <span>Save Draft</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Sticky Save Bar: lets a vendor save from any tab without scrolling back up */}
+          {(dirty || saveError || isSaving) && (
+            <div className="sticky bottom-4 z-30 bg-white/95 backdrop-blur-sm border border-gray-300 shadow-lg rounded-2xl p-3 space-y-2">
+              {saveError && (
+                <ErrorBanner message={saveError} onDismiss={() => setSaveError('')} onRetry={() => void handleSave()} />
+              )}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <SaveStatus dirty={dirty} saving={isSaving} savedAt={savedAt} hasError={!!saveError} />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setConfig((prev) => ({
+                        ...savedConfig,
+                        is_published: prev.is_published,
+                        published_at: prev.published_at,
+                        last_saved_at: prev.last_saved_at,
+                      }));
+                      setSaveError('');
+                    }}
+                    disabled={isSaving || !dirty}
+                    className="text-xs font-bold px-3.5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Discard changes
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving || !dirty}
+                    className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{config.is_published ? 'Save changes' : 'Save draft'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Interactive Live View Screen (7 cols on xl) */}

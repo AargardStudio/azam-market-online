@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Store, Save, CheckCircle2, Image, Upload, MapPin, Palette, Sparkles, ArrowRight } from 'lucide-react';
+import { Save, Palette, ArrowRight, Loader2, Undo2 } from 'lucide-react';
 import { Vendor, Category } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
+import { ErrorBanner, SaveStatus, useUnsavedChangesGuard } from './SaveFeedback';
+import { describeError } from '../../lib/errors';
 
 interface ShopProfileFormProps {
   vendor: Vendor;
   allCategories: Category[];
-  onSaveProfile: (updatedData: Partial<Vendor>) => void;
+  onSaveProfile: (updatedData: Partial<Vendor>) => void | Promise<void>;
   onOpenCustomizer?: () => void;
 }
 
@@ -28,10 +30,43 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
   const [selectedCatIds, setSelectedCatIds] = useState<string[]>(
     vendor.categories ? vendor.categories.map((c) => c.id) : []
   );
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // What is currently typed in the form, and what was last saved. Anything
+  // different between the two means there are unsaved edits.
+  const current = {
+    shopName,
+    stallNumber,
+    whatsapp,
+    email,
+    website,
+    description,
+    logoUrl,
+    coverUrl,
+    tagsInput,
+    selectedCatIds: [...selectedCatIds].sort(),
+  };
+  const [baseline, setBaseline] = useState(current);
+  const dirty = JSON.stringify(current) !== JSON.stringify(baseline);
+  useUnsavedChangesGuard(dirty);
+
+  const handleDiscard = () => {
+    setShopName(baseline.shopName);
+    setStallNumber(baseline.stallNumber);
+    setWhatsapp(baseline.whatsapp);
+    setEmail(baseline.email);
+    setWebsite(baseline.website);
+    setDescription(baseline.description);
+    setLogoUrl(baseline.logoUrl);
+    setCoverUrl(baseline.coverUrl);
+    setTagsInput(baseline.tagsInput);
+    setSelectedCatIds(baseline.selectedCatIds);
+    setSaveError('');
+  };
+
+  const doSave = async () => {
     const tagsArr = tagsInput
       .split(',')
       .map((t) => t.trim())
@@ -39,21 +74,34 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
 
     const chosenCats = allCategories.filter((c) => selectedCatIds.includes(c.id));
 
-    onSaveProfile({
-      shop_name: shopName,
-      stall_number: stallNumber,
-      whatsapp,
-      email,
-      website,
-      description,
-      logo_url: logoUrl || null,
-      cover_url: coverUrl || null,
-      tags: tagsArr,
-      categories: chosenCats,
-    });
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      await onSaveProfile({
+        shop_name: shopName,
+        stall_number: stallNumber,
+        whatsapp,
+        email,
+        website,
+        description,
+        logo_url: logoUrl || null,
+        cover_url: coverUrl || null,
+        tags: tagsArr,
+        categories: chosenCats,
+      });
+      setBaseline(current);
+      setSavedAt(new Date());
+    } catch (err) {
+      setSaveError(describeError(err, 'Could not save your stall profile.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dirty || isSaving) return;
+    void doSave();
   };
 
   const MAX_CATEGORIES = 3;
@@ -83,11 +131,7 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
           </p>
         </div>
 
-        {savedSuccess && (
-          <span className="bg-emerald-50 text-[#0F5C3A] text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-[#0F5C3A]" /> Stall Profile Saved Successfully!
-          </span>
-        )}
+        <SaveStatus dirty={dirty} saving={isSaving} savedAt={savedAt} hasError={!!saveError} />
       </div>
 
       {/* Direct Link to Shop Customizer Studio */}
@@ -280,15 +324,37 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-4 border-t border-gray-100 flex justify-end">
-          <button
-            type="submit"
-            className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Stall Profile</span>
-          </button>
+        {/* Sticky Save Bar: always reachable while editing a long form */}
+        <div className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 rounded-b-2xl space-y-3">
+          {saveError && (
+            <ErrorBanner
+              message={saveError}
+              onDismiss={() => setSaveError('')}
+              onRetry={dirty ? () => void doSave() : undefined}
+            />
+          )}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <SaveStatus dirty={dirty} saving={isSaving} savedAt={savedAt} hasError={!!saveError} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDiscard}
+                disabled={!dirty || isSaving}
+                className="text-xs font-bold px-4 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+              >
+                <Undo2 className="w-4 h-4" />
+                <span>Discard changes</span>
+              </button>
+              <button
+                type="submit"
+                disabled={!dirty || isSaving}
+                className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <span>{isSaving ? 'Saving…' : 'Save Stall Profile'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </div>

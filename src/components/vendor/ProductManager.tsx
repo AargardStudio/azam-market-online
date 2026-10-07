@@ -1,14 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, AlertCircle, Upload, X, Camera, Link, Sparkles } from 'lucide-react';
+import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, AlertCircle, Upload, X, Camera, Link, Sparkles, Loader2 } from 'lucide-react';
 import { Product, Vendor } from '../../types';
 import { FABRIC_TYPES } from '../../lib/fabricTypes';
 import { useLanguage } from '../../lib/i18n';
+import { ErrorBanner } from './SaveFeedback';
+import { describeError } from '../../lib/errors';
+import { fileToOptimizedDataUrl } from '../../lib/imageProcessing';
 
 interface ProductManagerProps {
   vendor: Vendor;
-  onAddProduct: (productData: Partial<Product>) => void;
-  onUpdateProduct: (productId: string, productData: Partial<Product>) => void;
-  onDeleteProduct: (productId: string) => void;
+  onAddProduct: (productData: Partial<Product>) => void | Promise<void>;
+  onUpdateProduct: (productId: string, productData: Partial<Product>) => void | Promise<void>;
+  onDeleteProduct: (productId: string) => void | Promise<void>;
 }
 
 const FABRIC_IMAGE_PRESETS = [
@@ -44,6 +47,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [imageError, setImageError] = useState('');
   const [urlInput, setUrlInput] = useState('');
 
+  // Save / upload feedback
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [listError, setListError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingUploads, setPendingUploads] = useState(0);
+
   const maxImages = vendor.tier?.max_images_per_product ?? 5;
   const maxImageSizeMb = vendor.tier?.max_image_size_mb ?? 5;
 
@@ -67,43 +77,49 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setImageError('');
   };
 
-  const handleFilesUpload = (fileList: FileList | File[]) => {
+  const handleFilesUpload = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
     const room = Math.max(0, maxImages - images.length);
-    let err = '';
+    const problems: string[] = [];
 
     if (room === 0) {
       setImageError(`You can add up to ${maxImages} images per product on the ${vendor.tier?.display_name || 'current'} Tier.`);
       return;
     }
 
-    let queued = 0;
-    files.forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        err = 'Please select image files (PNG, JPG, WEBP).';
-        return;
+    const accepted: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(file.name)) {
+        problems.push(`"${file.name}" is not an image (use PNG, JPG or WEBP).`);
+        continue;
       }
       const sizeMb = file.size / (1024 * 1024);
       if (sizeMb > maxImageSizeMb) {
-        err = `"${file.name}" is ${sizeMb.toFixed(1)}MB — max allowed is ${maxImageSizeMb}MB per image.`;
-        return;
+        problems.push(`"${file.name}" is ${sizeMb.toFixed(1)}MB — max allowed is ${maxImageSizeMb}MB per image.`);
+        continue;
       }
-      if (queued >= room) {
-        err = `Only ${room} more image(s) can be added (limit ${maxImages} per product).`;
-        return;
+      if (accepted.length >= room) {
+        problems.push(`"${file.name}" was skipped — only ${room} more image(s) fit (limit ${maxImages} per product).`);
+        continue;
       }
-      queued++;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result && typeof e.target.result === 'string') {
-          const result = e.target.result;
-          setImages((prev) => (prev.length >= maxImages ? prev : [...prev, result]));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+      accepted.push(file);
+    }
 
-    setImageError(err);
+    setImageError(problems.join(' '));
+    if (accepted.length === 0) return;
+
+    setPendingUploads((n) => n + accepted.length);
+    for (const file of accepted) {
+      try {
+        const dataUrl = await fileToOptimizedDataUrl(file);
+        setImages((prev) => (prev.length >= maxImages ? prev : [...prev, dataUrl]));
+      } catch (err) {
+        problems.push(describeError(err, `"${file.name}" could not be added.`));
+        setImageError(problems.join(' '));
+      } finally {
+        setPendingUploads((n) => n - 1);
+      }
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -139,6 +155,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setImageError('');
     setUrlInput('');
     setImageInputMode('upload');
+    setSaveError('');
     setShowModal(true);
   };
 
@@ -154,11 +171,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setImageError('');
     setUrlInput('');
     setImageInputMode('upload');
+    setSaveError('');
     setShowModal(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving || pendingUploads > 0) return;
     if (images.length === 0) {
       setImageError('Add at least one product image.');
       return;
@@ -172,12 +191,34 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       image_url: images[0],
       image_urls: images,
     };
-    if (editingProduct) {
-      onUpdateProduct(editingProduct.id, payload);
-    } else {
-      onAddProduct(payload);
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      if (editingProduct) {
+        await onUpdateProduct(editingProduct.id, payload);
+      } else {
+        await onAddProduct(payload);
+      }
+      setShowModal(false);
+    } catch (err) {
+      // Keep the modal open with everything the vendor typed so nothing is lost.
+      setSaveError(describeError(err, 'Could not save this product.'));
+    } finally {
+      setIsSaving(false);
     }
-    setShowModal(false);
+  };
+
+  const handleDelete = async (p: Product) => {
+    if (!window.confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    setListError('');
+    setDeletingId(p.id);
+    try {
+      await onDeleteProduct(p.id);
+    } catch (err) {
+      setListError(describeError(err, `Could not delete "${p.name}".`));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const products = vendor.products || [];
@@ -209,6 +250,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           <span>Add New Product</span>
         </button>
       </div>
+
+      {listError && <ErrorBanner title="Action failed" message={listError} onDismiss={() => setListError('')} />}
 
       {isAtLimit && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs text-amber-900 flex items-center justify-between">
@@ -266,10 +309,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   </button>
 
                   <button
-                    onClick={() => onDeleteProduct(p.id)}
-                    className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => handleDelete(p)}
+                    disabled={deletingId === p.id}
+                    className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -542,7 +586,16 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                         key={idx}
                         className="relative w-full aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group"
                       >
-                        <img src={url} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img
+                          src={url}
+                          alt={`Product ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={() =>
+                            setImageError(
+                              `Image ${idx + 1} could not be loaded — the link may be broken or blocked. Remove it and add it again.`
+                            )
+                          }
+                        />
                         {idx === 0 && (
                           <span className="absolute top-1 left-1 bg-[#0F5C3A] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                             <CheckCircle2 className="w-2.5 h-2.5" />
@@ -574,19 +627,29 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 ></textarea>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              {saveError && <ErrorBanner message={saveError} onDismiss={() => setSaveError('')} />}
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                {pendingUploads > 0 && (
+                  <span className="mr-auto text-[11px] font-semibold text-gray-500 inline-flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing {pendingUploads} image{pendingUploads > 1 ? 's' : ''}…
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 font-semibold text-gray-600 hover:text-gray-900"
+                  disabled={isSaving}
+                  className="px-4 py-2 font-semibold text-gray-600 hover:text-gray-900 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white font-bold px-5 py-2 rounded-xl"
+                  disabled={isSaving || pendingUploads > 0}
+                  className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold px-5 py-2 rounded-xl inline-flex items-center gap-2"
                 >
-                  {editingProduct ? 'Save Changes' : 'Create Product'}
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Saving…' : editingProduct ? 'Save Changes' : 'Create Product'}
                 </button>
               </div>
             </form>

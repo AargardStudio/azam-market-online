@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Download, Trash2, Plus, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileText, Download, Trash2, Plus, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Catalogue, Vendor } from '../../types';
+import { ErrorBanner } from './SaveFeedback';
+import { describeError } from '../../lib/errors';
 
 interface CatalogueManagerProps {
   vendor: Vendor;
-  onAddCatalogue: (catData: Partial<Catalogue>) => void;
-  onDeleteCatalogue: (catId: string) => void;
+  onAddCatalogue: (catData: Partial<Catalogue>) => void | Promise<void>;
+  onDeleteCatalogue: (catId: string) => void | Promise<void>;
 }
 
 export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
@@ -19,29 +21,55 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
   const [description, setDescription] = useState('');
   const [fileSizeMb, setFileSizeMb] = useState<number>(4.5);
   const [sizeError, setSizeError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [listError, setListError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const catalogues = vendor.catalogues || [];
   const maxCatalogues = vendor.tier?.max_catalogues ?? 1;
   const maxCatalogueSizeMb = vendor.tier?.max_catalogue_size_mb ?? 50;
   const isAtLimit = maxCatalogues !== -1 && catalogues.length >= maxCatalogues;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const size = Number(fileSizeMb);
     if (size > maxCatalogueSizeMb) {
       setSizeError(`PDF is ${size}MB — max allowed is ${maxCatalogueSizeMb}MB on the ${vendor.tier?.display_name || 'current'} Tier.`);
       return;
     }
     setSizeError('');
-    onAddCatalogue({
-      title,
-      season,
-      description: description || 'Official wholesale fabric lookbook & dye swatch reference.',
-      file_size_mb: size,
-    });
-    setShowModal(false);
-    setTitle('');
-    setDescription('');
+    setSaveError('');
+    setIsSaving(true);
+    try {
+      await onAddCatalogue({
+        title,
+        season,
+        description: description || 'Official wholesale fabric lookbook & dye swatch reference.',
+        file_size_mb: size,
+      });
+      setShowModal(false);
+      setTitle('');
+      setDescription('');
+    } catch (err) {
+      setSaveError(describeError(err, 'Could not save this lookbook.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (cat: Catalogue) => {
+    if (!window.confirm(`Delete "${cat.title}"? This cannot be undone.`)) return;
+    setListError('');
+    setDeletingId(cat.id);
+    try {
+      await onDeleteCatalogue(cat.id);
+    } catch (err) {
+      setListError(describeError(err, `Could not delete "${cat.title}".`));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -57,7 +85,7 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
         </div>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => { setSaveError(''); setShowModal(true); }}
           disabled={isAtLimit}
           className={`text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer ${
             isAtLimit
@@ -69,6 +97,8 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
           <span>Upload PDF Lookbook</span>
         </button>
       </div>
+
+      {listError && <ErrorBanner title="Action failed" message={listError} onDismiss={() => setListError('')} />}
 
       {isAtLimit && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs text-amber-900 flex items-center justify-between">
@@ -120,10 +150,11 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
                   </a>
 
                   <button
-                    onClick={() => onDeleteCatalogue(cat.id)}
-                    className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => handleDelete(cat)}
+                    disabled={deletingId === cat.id}
+                    className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    {deletingId === cat.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -208,26 +239,36 @@ export const CatalogueManager: React.FC<CatalogueManagerProps> = ({
                 ></textarea>
               </div>
 
-              {/* Simulated PDF Dropzone */}
-              <div className="border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-xl p-4 text-center space-y-1">
-                <Upload className="w-6 h-6 text-[#0F5C3A] mx-auto" />
-                <div className="font-bold text-gray-800">Selected PDF File Verified</div>
-                <div className="text-[10px] text-gray-500">Max size {maxCatalogueSizeMb}MB • PDF Document Format</div>
+              {/* PDF file upload is not wired up yet — say so instead of faking a verified file */}
+              <div className="border border-amber-300 bg-amber-50 rounded-xl p-3 text-[11px] text-amber-900 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold">PDF file upload isn't available yet</div>
+                  <p className="mt-0.5">
+                    Only the lookbook details above are saved for now. The file size you enter is a declared value
+                    (max {maxCatalogueSizeMb}MB) — no PDF is stored, so buyers cannot download one until file storage is enabled.
+                  </p>
+                </div>
               </div>
+
+              {saveError && <ErrorBanner message={saveError} onDismiss={() => setSaveError('')} />}
 
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 font-semibold text-gray-600 hover:text-gray-900"
+                  disabled={isSaving}
+                  className="px-4 py-2 font-semibold text-gray-600 hover:text-gray-900 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white font-bold px-5 py-2 rounded-xl"
+                  disabled={isSaving}
+                  className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold px-5 py-2 rounded-xl inline-flex items-center gap-2"
                 >
-                  Publish Catalogue
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Saving…' : 'Publish Catalogue'}
                 </button>
               </div>
             </form>

@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Link as LinkIcon, Image as ImageIcon, X, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { Upload, Link as LinkIcon, Image as ImageIcon, X, Check, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { fileToOptimizedDataUrl, dataUrlSizeMb } from '../../lib/imageProcessing';
+import { describeError } from '../../lib/errors';
 
 export type ImageUploaderAspect = 'cover' | 'logo' | 'certificate' | 'product';
 
@@ -96,33 +98,30 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [urlInput, setUrlInput] = useState(value || '');
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [busy, setBusy] = useState<'file' | 'url' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (file: File) => {
+  const handleFileChange = async (file: File) => {
     setErrorMsg('');
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('Please select a valid image file (PNG, JPG, WEBP, or SVG).');
-      return;
-    }
-
-    // Limit to 10MB
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('Image file size exceeds 10MB limit. Please upload a smaller file.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        onChange(result);
-        setUrlInput('');
+    setBusy('file');
+    try {
+      // Large photos are resized in the browser first: images are stored inline,
+      // and oversized payloads are the usual reason a save silently fails.
+      const dataUrl = await fileToOptimizedDataUrl(file, { maxFileMb: 25 });
+      if (dataUrlSizeMb(dataUrl) > 6) {
+        setErrorMsg(
+          `"${file.name}" is still ${dataUrlSizeMb(dataUrl).toFixed(1)}MB after resizing, which is too large to save reliably. Use a simpler/smaller image.`
+        );
+        return;
       }
-    };
-    reader.onerror = () => {
-      setErrorMsg('Failed to process image file. Please try another image or use an image URL.');
-    };
-    reader.readAsDataURL(file);
+      onChange(dataUrl);
+      setUrlInput('');
+    } catch (err) {
+      setErrorMsg(describeError(err, 'Could not use this image.'));
+    } finally {
+      setBusy(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -146,13 +145,41 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setDragActive(false);
   };
 
-  const handleApplyUrl = () => {
-    if (!urlInput.trim()) {
+  const handleApplyUrl = async () => {
+    const url = urlInput.trim();
+    if (!url) {
       setErrorMsg('Please enter a valid image URL');
       return;
     }
+    if (!/^https?:\/\//i.test(url)) {
+      setErrorMsg('The link must start with http:// or https://');
+      return;
+    }
     setErrorMsg('');
-    onChange(urlInput.trim());
+    setBusy('url');
+    // Make sure the link really loads as an image before accepting it,
+    // otherwise the shop would show a broken picture.
+    const ok = await new Promise<boolean>((resolve) => {
+      const probe = new Image();
+      const timer = setTimeout(() => resolve(false), 10000);
+      probe.onload = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      probe.onerror = () => {
+        clearTimeout(timer);
+        resolve(false);
+      };
+      probe.src = url;
+    });
+    setBusy(null);
+    if (!ok) {
+      setErrorMsg(
+        'That link did not load as an image (it may be broken, private, blocked from other sites, or not a direct image link). Try uploading the file instead.'
+      );
+      return;
+    }
+    onChange(url);
   };
 
   const handleClear = () => {
@@ -203,6 +230,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               src={value}
               alt="Uploaded preview"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              onError={() =>
+                setErrorMsg('The current image could not be displayed — the file or link is broken. Remove it and add it again.')
+              }
             />
           </div>
 
@@ -287,17 +317,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
             <div className="flex flex-col items-center justify-center space-y-2">
               <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#0F5C3A] flex items-center justify-center">
-                <Upload className="w-5 h-5" />
+                {busy === 'file' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
               </div>
               <div className="text-xs text-gray-700">
-                <span className="font-bold text-[#0F5C3A] hover:underline">Click to browse file</span> or drag & drop here
+                {busy === 'file' ? (
+                  <span className="font-bold text-gray-700">Processing image…</span>
+                ) : (
+                  <>
+                    <span className="font-bold text-[#0F5C3A] hover:underline">Click to browse file</span> or drag & drop here
+                  </>
+                )}
               </div>
               <p className="text-[10px] text-gray-400">
                 {aspect === 'cover'
-                  ? 'Recommended: 1200×400px (16:9 or panoramic banner, max 10MB)'
+                  ? 'Recommended: 1200×400px (16:9 or panoramic banner — large photos are resized automatically)'
                   : aspect === 'logo'
                   ? 'Recommended: 400×400px (Square or circle icon, PNG/WEBP/SVG)'
-                  : 'High resolution image file (PNG, JPG, WEBP, max 10MB)'}
+                  : 'High resolution image file (PNG, JPG, WEBP — large photos are resized automatically)'}
               </p>
             </div>
           </div>
@@ -317,9 +353,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               <button
                 type="button"
                 onClick={handleApplyUrl}
-                className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+                disabled={busy === 'url'}
+                className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
               >
-                Apply
+                {busy === 'url' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {busy === 'url' ? 'Checking…' : 'Apply'}
               </button>
             </div>
             <p className="text-[10px] text-gray-400">
