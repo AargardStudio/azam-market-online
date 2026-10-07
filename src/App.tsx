@@ -41,7 +41,7 @@ import { LanguageProvider } from './lib/i18n';
 
 // While there are few registrations, the home page shows one "All Stalls" group.
 // Set to false to bring back the full per-category tiles and rows.
-const SINGLE_ALL_STALLS = true;
+const SINGLE_ALL_STALLS = false;
 
 function AppInner() {
   // Data States
