@@ -12,6 +12,8 @@ interface CategoryShopRowsProps {
   onLogEvent: (vendorId: string, type: 'whatsapp_click' | 'email_click' | 'profile_view', catId?: string) => void;
   onSelectCategory: (slug: string) => void;
   onNavigateRegister: () => void;
+  /** Show every stall in one horizontally scrolling "All Stalls" row. */
+  singleAllStalls?: boolean;
 }
 
 export const CategoryShopRows: React.FC<CategoryShopRowsProps> = ({
@@ -22,8 +24,47 @@ export const CategoryShopRows: React.FC<CategoryShopRowsProps> = ({
   onLogEvent,
   onSelectCategory,
   onNavigateRegister,
+  singleAllStalls = false,
 }) => {
   const { lang } = useLanguage();
+
+  if (singleAllStalls) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🏬</span>
+          <h2 className="font-serif text-lg sm:text-xl font-bold text-gray-900">All Stalls</h2>
+          <span className="text-xs text-gray-400 font-medium">
+            {vendors.length} shop{vendors.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        {vendors.length > 0 ? (
+          <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory no-scrollbar">
+            {vendors.map((vendor) => (
+              <div key={vendor.id} className="w-[260px] sm:w-[280px] shrink-0 snap-start">
+                <VendorCard
+                  vendor={vendor}
+                  onSelectVendor={onSelectVendor}
+                  onOpenCatalogue={onOpenCatalogue}
+                  onLogEvent={onLogEvent}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={onNavigateRegister}
+            className="w-full flex items-center gap-3 bg-white rounded-2xl border border-dashed border-gray-300 p-5 text-left hover:border-[#0F5C3A]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+              <Store className="w-5 h-5" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700">No stalls listed yet — be the first to register.</p>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">

@@ -6,14 +6,41 @@ interface CategoryGridProps {
   categories: Category[];
   selectedCategory: string | null;
   onSelectCategory: (slug: string | null) => void;
+  /** Total live stalls, shown on the single "All Stalls" tile. */
+  totalStalls?: number;
+  /** While there are few registrations, show one "All Stalls" tile instead of every category. */
+  singleAllStalls?: boolean;
 }
 
 export const CategoryGrid: React.FC<CategoryGridProps> = ({
   categories,
   selectedCategory,
   onSelectCategory,
+  totalStalls = 0,
+  singleAllStalls = false,
 }) => {
   const { lang, t } = useLanguage();
+
+  if (singleAllStalls) {
+    return (
+      <div className="my-8">
+        <h2 className="font-serif text-xl font-bold text-gray-900 mb-3">{t('category.browse')}</h2>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 no-scrollbar">
+          <button
+            onClick={() => onSelectCategory(null)}
+            className="shrink-0 min-w-[150px] p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-[#0F5C3A] border-[#0F5C3A] text-white shadow-md"
+          >
+            <span className="text-2xl">🏬</span>
+            <span className="text-xs font-semibold leading-tight">All Stalls</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/20 text-white">
+              {totalStalls} stall{totalStalls === 1 ? '' : 's'}
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="my-8">
       <div className="flex items-center justify-between mb-4">

@@ -35,6 +35,10 @@ import { VendorRegisterPage } from './components/auth/VendorRegisterPage';
 import { AdminLogin } from './components/auth/AdminLogin';
 import { LanguageProvider } from './lib/i18n';
 
+// While there are few registrations, the home page shows one "All Stalls" group.
+// Set to false to bring back the full per-category tiles and rows.
+const SINGLE_ALL_STALLS = true;
+
 function AppInner() {
   // Data States
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -877,6 +881,8 @@ function AppInner() {
                   categories={categories}
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}
+                  totalStalls={activeVendors.length}
+                  singleAllStalls={SINGLE_ALL_STALLS}
                 />
 
                 {/* Horizontally Scrollable "Digital Shops" rows, one per category */}
@@ -888,6 +894,7 @@ function AppInner() {
                     onOpenCatalogue={handleOpenCatalogueModal}
                     onLogEvent={logEvent}
                     onSelectCategory={setSelectedCategory}
+                    singleAllStalls={SINGLE_ALL_STALLS}
                     onNavigateRegister={() => {
                       window.history.pushState({}, '', '/register');
                       setCurrentView('vendor_register');
