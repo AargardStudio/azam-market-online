@@ -6,6 +6,7 @@ import { VendorHero } from './components/public/VendorHero';
 import { CategoryGrid } from './components/public/CategoryGrid';
 import { CategoryShopRows } from './components/public/CategoryShopRows';
 import { TrustFeatures } from './components/public/TrustFeatures';
+import { ServicesCollage } from './components/public/ServicesCollage';
 import { LivePrices } from './components/public/LivePrices';
 import { HomeSlideshow } from './components/public/HomeSlideshow';
 import { FilterBar } from './components/public/FilterBar';
@@ -904,6 +905,8 @@ function AppInner() {
                     }}
                   />
                 )}
+
+                {!selectedCategory && !searchQuery && <ServicesCollage />}
 
                 {/* Mid-page promotional slideshow */}
                 {!selectedCategory && !searchQuery && (
