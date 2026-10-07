@@ -6,6 +6,7 @@ import { VendorHero } from './components/public/VendorHero';
 import { CategoryGrid } from './components/public/CategoryGrid';
 import { CategoryShopRows } from './components/public/CategoryShopRows';
 import { TrustFeatures } from './components/public/TrustFeatures';
+import { LivePrices } from './components/public/LivePrices';
 import { HomeSlideshow } from './components/public/HomeSlideshow';
 import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
@@ -874,6 +875,8 @@ function AppInner() {
                 onSearchChange={setSearchQuery}
                 onSelectCategory={(catSlug) => setSelectedCategory(catSlug)}
               />
+
+              <LivePrices />
 
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 {/* Category Grid */}
