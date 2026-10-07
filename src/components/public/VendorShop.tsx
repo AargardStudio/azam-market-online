@@ -140,6 +140,15 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 
   const coverUrl = cust.hero_cover_url || vendor.cover_url;
 
+  // Show the stall's real market (e.g. Raja Bazar, Rawalpindi), not a hard-coded one.
+  const marketName = vendor.market?.name || 'Azam Cloth Market';
+  const marketCity = vendor.market?.city || 'Lahore';
+  const marketLine = `${marketName}, ${marketCity}`;
+  const DEFAULT_BADGES = ['', 'Verified Azam Market Stall', 'Azam Cloth Market • Direct Wholesale Stall'];
+  const heroBadge = DEFAULT_BADGES.includes(cust.hero_badge_text || '')
+    ? `Verified ${marketName} Stall`
+    : (cust.hero_badge_text as string);
+
   return (
     <div className={`min-h-screen ${bgClass} pb-28 ${fontClass}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-3">
@@ -177,7 +186,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
           <div className="flex items-center gap-2">
             {cust.show_market_badge && (
               <span className="bg-emerald-50 text-emerald-800 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 hidden sm:inline-flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-emerald-700" /> Azam Cloth Market, Lahore
+                <MapPin className="w-3 h-3 text-emerald-700" /> {marketLine}
               </span>
             )}
             {vendor.is_verified && (
@@ -213,7 +222,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
             }}
           >
             <span className="font-serif text-white/15 text-6xl sm:text-8xl font-bold tracking-widest select-none">
-              AZAM CLOTH MARKET
+              {marketName.toUpperCase()}
             </span>
           </div>
         )}
@@ -230,7 +239,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                 borderColor: `${accentColor}55`,
               }}
             >
-              {cust.hero_badge_text || 'Azam Cloth Market • Direct Wholesale Stall'}
+              {heroBadge}
             </span>
             <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
               {cust.hero_headline || vendor.shop_name}
@@ -352,7 +361,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                     <strong>{vendor.stall_number}</strong>
                   </span>
                   <span>•</span>
-                  <span>Azam Cloth Market, Lahore</span>
+                  <span>{marketLine}</span>
                   <span>•</span>
                   <span>{vendor.profile_views} Stall Views</span>
                 </div>
@@ -701,7 +710,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                           </h3>
                           <div className="text-xs text-gray-700 space-y-2">
                             <p>
-                              <strong>Physical Stall:</strong> {vendor.stall_number}, Azam Cloth Market, Walled City, Lahore, Punjab, Pakistan.
+                              <strong>Physical Stall:</strong> {vendor.stall_number}, {marketLine}, Pakistan.
                             </p>
                             <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2 text-[11px] text-emerald-950">
                               <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -1144,7 +1153,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                       </span>
                       <strong className="text-gray-900">{vendor.stall_number}</strong>
                       <p className="text-gray-500 text-[11px]">
-                        Azam Cloth Market, Walled City Lahore
+                        {marketLine}
                       </p>
                     </div>
                   </div>

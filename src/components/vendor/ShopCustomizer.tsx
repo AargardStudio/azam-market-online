@@ -865,7 +865,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                       Show Market Badge
                     </label>
                     <span className="text-[11px] text-gray-500">
-                      Display verified "Azam Cloth Market Lahore" stall indicator
+                      Display verified market stall indicator
                     </span>
                   </div>
                   <input
@@ -1981,7 +1981,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                   style={{ backgroundColor: config.theme_color }}
                 >
                   <span className="inline-block truncate max-w-full">
-                    📢 {config.announcement_text || 'Direct Wholesale Mill Importers • Azam Cloth Market'}
+                    📢 {config.announcement_text || `Direct Wholesale Mill Importers • ${vendor.market?.name || 'Azam Cloth Market'}`}
                   </span>
                 </div>
               )}
@@ -2079,7 +2079,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                           borderColor: `${config.accent_color}55`,
                         }}
                       >
-                        {config.hero_badge_text || 'Verified Azam Market Stall'}
+                        {config.hero_badge_text && config.hero_badge_text !== 'Verified Azam Market Stall' ? config.hero_badge_text : `Verified ${vendor.market?.name || 'Azam Cloth Market'} Stall`}
                       </span>
                     </div>
 
@@ -2371,7 +2371,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                                     <strong>Stall Address:</strong> {vendor.stall_number}
                                   </div>
                                   <div className="text-gray-500 text-[11px]">
-                                    Azam Cloth Market, Walled City, Lahore, Punjab
+                                    {`${vendor.market?.name || 'Azam Cloth Market'}, ${vendor.market?.city || 'Lahore'}`}
                                   </div>
                                   <div className="text-gray-500 text-[11px] flex items-center gap-1 pt-1">
                                     <Clock className="w-3 h-3" />
