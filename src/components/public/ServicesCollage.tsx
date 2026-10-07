@@ -23,7 +23,7 @@ const TILES: Tile[] = [
     title: 'Talk to vendors',
     note: "Tell them what you're looking for",
     icon: <MessageCircle className="w-5 h-5" />,
-    className: 'col-span-2 row-span-2',
+    className: 'col-span-2 row-span-2 sm:col-span-2 sm:row-span-2 sm:col-start-1 sm:row-start-1',
     image: '/categories/3pc-unstitched.jpg',
     position: 'center 30%',
     topic: 'Talk to vendors',
@@ -32,7 +32,7 @@ const TILES: Tile[] = [
     title: 'Export services',
     note: 'Ship wholesale fabric worldwide',
     icon: <Globe2 className="w-5 h-5" />,
-    className: 'col-span-2',
+    className: 'col-span-2 sm:col-span-2 sm:col-start-3 sm:row-start-1',
     image: '/categories/2pc-unstitched.jpg',
     position: 'center 25%',
     topic: 'Export services',
@@ -41,7 +41,7 @@ const TILES: Tile[] = [
     title: 'Whitelabel',
     note: 'Your name on ready products',
     icon: <Layers className="w-5 h-5" />,
-    className: '',
+    className: 'sm:col-span-2 sm:col-start-5 sm:row-start-1',
     image: '/categories/bases.jpg',
     position: 'center 30%',
     topic: 'Whitelabel',
@@ -50,7 +50,7 @@ const TILES: Tile[] = [
     title: 'Private label service',
     note: 'Made to your spec',
     icon: <Tag className="w-5 h-5" />,
-    className: '',
+    className: 'sm:col-span-2 sm:col-start-5 sm:row-start-2',
     image: '/categories/brands.jpg',
     position: 'center 30%',
     topic: 'Private label service',
@@ -59,7 +59,7 @@ const TILES: Tile[] = [
     title: 'Start your own brand',
     note: 'From fabric to finished label',
     icon: <Sparkles className="w-5 h-5" />,
-    className: 'col-span-2',
+    className: 'col-span-2 sm:col-span-2 sm:col-start-3 sm:row-start-2',
     image: '/hero-banner.jpg',
     position: 'center 35%',
     topic: 'Start your own brand',
@@ -69,7 +69,9 @@ const TILES: Tile[] = [
 export const ServicesCollage: React.FC = () => (
   <section aria-label="Services" className="space-y-3">
     <h2 className="font-serif text-lg sm:text-xl font-bold text-gray-900">Services for buyers</h2>
-    <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-[110px] sm:auto-rows-[130px] gap-3">
+    {/* Same proportions as the slideshow banner above/below it on desktop. */}
+    <div className="sm:aspect-[21/8]">
+    <div className="grid grid-cols-2 sm:grid-cols-6 sm:grid-rows-2 auto-rows-[120px] sm:auto-rows-auto gap-3 sm:h-full">
       {TILES.map((t) => (
         <button
           key={t.title}
@@ -103,6 +105,7 @@ export const ServicesCollage: React.FC = () => (
           </div>
         </button>
       ))}
+    </div>
     </div>
   </section>
 );
