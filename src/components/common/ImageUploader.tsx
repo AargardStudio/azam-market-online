@@ -107,7 +107,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     try {
       // Large photos are resized in the browser first: images are stored inline,
       // and oversized payloads are the usual reason a save silently fails.
-      const dataUrl = await fileToOptimizedDataUrl(file, { maxFileMb: 25 });
+      const dataUrl = await fileToOptimizedDataUrl(file, { maxFileMb: 25, maxDimension: aspect === 'logo' ? 600 : 1600 });
       if (dataUrlSizeMb(dataUrl) > 6) {
         setErrorMsg(
           `"${file.name}" is still ${dataUrlSizeMb(dataUrl).toFixed(1)}MB after resizing, which is too large to save reliably. Use a simpler/smaller image.`

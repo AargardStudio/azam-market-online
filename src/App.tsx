@@ -7,6 +7,8 @@ import { CategoryGrid } from './components/public/CategoryGrid';
 import { CategoryShopRows } from './components/public/CategoryShopRows';
 import { TrustFeatures } from './components/public/TrustFeatures';
 import { ServicesCollage } from './components/public/ServicesCollage';
+import { ErrorBanner, Saver } from './components/vendor/SaveFeedback';
+import { describeError } from './lib/errors';
 import { LivePrices } from './components/public/LivePrices';
 import { HomeSlideshow } from './components/public/HomeSlideshow';
 import { FilterBar } from './components/public/FilterBar';
@@ -163,8 +165,13 @@ function AppInner() {
       }
 
       if (vendor && isMounted) {
-        setActiveVendorInDashboard(vendor);
+        // The row above may be a bare table row (no categories, customization or
+        // products), so load the full shop before showing the dashboard.
+        const full = (await refetchVendor(vendor.id)) ?? vendor;
+        if (!isMounted) return;
+        setActiveVendorInDashboard({ ...full, products: full.products || [] });
         setCurrentView('vendor_dashboard');
+        void reloadVendorProducts(full.id);
       }
     };
 
@@ -215,16 +222,128 @@ function AppInner() {
     return hydrateVendor(data);
   };
 
+  // The vendor query above deliberately leaves products out (their images are
+  // huge data URLs). Products are loaded separately: first the light fields for
+  // every vendor (names, prices -- instant), then the images per product.
+  const PRODUCT_META = 'id,vendor_id,name,description,fabric_type,price_range,moq,is_active,sort_order,created_at';
+  const productImageCache = React.useRef<Record<string, { image_url: string; image_urls: string[] }>>({});
+  const imagesRequested = React.useRef<Set<string>>(new Set());
+  const [productsError, setProductsError] = useState<string>('');
+
+  // "Save all changes": editors (shop profile, customizer) register themselves here.
+  const [savers, setSavers] = useState<Record<string, Saver>>({});
+  const registerSaver = React.useCallback((id: string, saver: Saver | null) => {
+    setSavers((prev) => {
+      if (!saver) {
+        if (!(id in prev)) return prev;
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      }
+      const old = prev[id];
+      if (old && old.dirty === saver.dirty && old.label === saver.label) {
+        // keep the newest save() without triggering a re-render
+        prev[id] = saver;
+        return prev;
+      }
+      return { ...prev, [id]: saver };
+    });
+  }, []);
+  const [savingAll, setSavingAll] = useState(false);
+  const [saveAllErrors, setSaveAllErrors] = useState<string[]>([]);
+  const [saveAllAt, setSaveAllAt] = useState<Date | null>(null);
+  const dirtySavers = (Object.values(savers) as Saver[]).filter((x) => x.dirty);
+
+  const handleSaveAll = async () => {
+    if (savingAll || dirtySavers.length === 0) return;
+    setSavingAll(true);
+    setSaveAllErrors([]);
+    const errors: string[] = [];
+    for (const saver of dirtySavers) {
+      try {
+        await saver.save();
+      } catch (e) {
+        errors.push(`${saver.label}: ${describeError(e, 'could not be saved')}`);
+      }
+    }
+    setSaveAllErrors(errors);
+    if (errors.length === 0) setSaveAllAt(new Date());
+    setSavingAll(false);
+  };
+
+  // Keep the profile and customizer editors alive once opened so switching tabs never throws away edits.
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
+
+  const withCachedImages = (p: any): Product => {
+    const c = productImageCache.current[p.id];
+    return { ...p, image_url: c?.image_url ?? '', image_urls: c?.image_urls ?? [] };
+  };
+
+  const setVendorProducts = (vendorId: string, update: (prev: Product[]) => Product[]) => {
+    setVendors((prev) => prev.map((v) => (v.id === vendorId ? { ...v, products: update(v.products || []) } : v)));
+    setActiveVendorInDashboard((prev) =>
+      prev && prev.id === vendorId ? { ...prev, products: update(prev.products || []) } : prev
+    );
+  };
+
+  /** Reload one vendor's product list (light fields), keeping any images already downloaded. */
+  const reloadVendorProducts = async (vendorId: string, opts: { forgetImagesFor?: string } = {}) => {
+    if (opts.forgetImagesFor) {
+      delete productImageCache.current[opts.forgetImagesFor];
+    }
+    const { data, error } = await supabase
+      .from('products')
+      .select(PRODUCT_META)
+      .eq('vendor_id', vendorId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+    if (error) {
+      console.error('Error loading products:', error);
+      setProductsError(`Products could not be loaded: ${error.message}`);
+      return;
+    }
+    setProductsError('');
+    const list = (data ?? []).map(withCachedImages);
+    setVendorProducts(vendorId, () => list);
+    imagesRequested.current.delete(vendorId);
+    void loadVendorProductImages(vendorId, list);
+  };
+
+  /** Download product photos one product at a time (3 in parallel) so a big shop never times out. */
+  const loadVendorProductImages = async (vendorId: string, list: Product[]) => {
+    if (imagesRequested.current.has(vendorId)) return;
+    imagesRequested.current.add(vendorId);
+    const queue = list.filter((p) => !productImageCache.current[p.id]).map((p) => p.id);
+    const worker = async () => {
+      while (queue.length > 0) {
+        const id = queue.shift() as string;
+        const { data, error } = await supabase.from('products').select('id,image_url,image_urls').eq('id', id).single();
+        if (error || !data) {
+          console.error('Error loading product images for', id, error);
+          continue;
+        }
+        const imgs = (data.image_urls && data.image_urls.length ? data.image_urls : data.image_url ? [data.image_url] : []) as string[];
+        productImageCache.current[id] = { image_url: imgs[0] || data.image_url || '', image_urls: imgs };
+        setVendorProducts(vendorId, (prev) =>
+          prev.map((p) => (p.id === id ? { ...p, ...productImageCache.current[id] } : p))
+        );
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+  };
+
   const applyVendorUpdate = (updated: Vendor) => {
-    setVendors((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
-    setActiveVendorInDashboard((prev) => (prev && prev.id === updated.id ? updated : prev));
+    // Keep the products already loaded -- the vendor query does not include them.
+    setVendors((prev) => prev.map((v) => (v.id === updated.id ? { ...updated, products: v.products || [] } : v)));
+    setActiveVendorInDashboard((prev) =>
+      prev && prev.id === updated.id ? { ...updated, products: prev.products || [] } : prev
+    );
   };
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
 
-      const [marketsRes, categoriesRes, tiersRes, vendorsRes] = await Promise.all([
+      const [marketsRes, categoriesRes, tiersRes, vendorsRes, productsRes] = await Promise.all([
         supabase.from('markets').select('*').order('name'),
         supabase.from('categories').select('*').order('name'),
         supabase.from('subscription_tiers').select('*'),
@@ -232,7 +351,18 @@ function AppInner() {
           .from('vendors')
           .select(VENDOR_SELECT)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('products')
+          .select(PRODUCT_META)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true }),
       ]);
+      if (productsRes.error) {
+        console.error('Error loading products:', productsRes.error);
+        setProductsError(`Products could not be loaded: ${productsRes.error.message}`);
+      } else {
+        setProductsError('');
+      }
 
       if (marketsRes.error) console.error('Error loading markets:', marketsRes.error);
       if (categoriesRes.error) console.error('Error loading categories:', categoriesRes.error);
@@ -242,7 +372,14 @@ function AppInner() {
       const loadedMarkets = marketsRes.data ?? [];
       const loadedCategories = categoriesRes.data ?? [];
       const loadedTiers = tiersRes.data ?? [];
-      const loadedVendors = (vendorsRes.data ?? []).map(hydrateVendor);
+      const productsByVendor: Record<string, Product[]> = {};
+      (productsRes.data ?? []).forEach((p: any) => {
+        (productsByVendor[p.vendor_id] ||= []).push(withCachedImages(p));
+      });
+      const loadedVendors = (vendorsRes.data ?? []).map((row: any) => ({
+        ...hydrateVendor(row),
+        products: productsByVendor[row.id] ?? [],
+      }));
 
       setMarkets(loadedMarkets);
       setCategories(loadedCategories);
@@ -508,6 +645,16 @@ function AppInner() {
         .eq('id', activeVendorInDashboard.id);
       if (error) throw error;
 
+      // A new profile banner must actually show: a leftover storefront banner
+      // chosen in the customizer would otherwise hide it.
+      if ('cover_url' in columnData && columnData.cover_url !== activeVendorInDashboard.cover_url) {
+        const { error: heroErr } = await supabase
+          .from('shop_customizations')
+          .update({ hero_cover_url: '' })
+          .eq('vendor_id', activeVendorInDashboard.id);
+        if (heroErr) throw heroErr;
+      }
+
       // Categories live in the vendor_categories join table, not on the vendor row,
       // so they have to be synced separately (previously edits here were silently dropped).
       if (Array.isArray(nextCategories)) {
@@ -546,7 +693,7 @@ function AppInner() {
     if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
       const now = new Date().toISOString();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('shop_customizations')
         .update({
           ...customization,
@@ -554,8 +701,20 @@ function AppInner() {
           last_saved_at: now,
           published_at: publish ? now : customization.published_at,
         })
-        .eq('vendor_id', activeVendorInDashboard.id);
+        .eq('vendor_id', activeVendorInDashboard.id)
+        .select('vendor_id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        // No customization row existed yet, so the update changed nothing.
+        const { error: insErr } = await supabase.from('shop_customizations').insert({
+          ...customization,
+          vendor_id: activeVendorInDashboard.id,
+          is_published: publish,
+          last_saved_at: now,
+          published_at: publish ? now : customization.published_at,
+        });
+        if (insErr) throw insErr;
+      }
       const hydrated = await refetchVendor(activeVendorInDashboard.id);
       if (!hydrated) throw new Error('Failed to reload vendor after saving customization');
       applyVendorUpdate(hydrated);
@@ -572,8 +731,7 @@ function AppInner() {
         .from('products')
         .insert({ ...prodData, vendor_id: activeVendorInDashboard.id });
       if (error) throw error;
-      const hydrated = await refetchVendor(activeVendorInDashboard.id);
-      if (hydrated) applyVendorUpdate(hydrated);
+      await reloadVendorProducts(activeVendorInDashboard.id);
     } catch (e) {
       console.error(e);
       throw e;
@@ -582,11 +740,16 @@ function AppInner() {
 
   const handleUpdateProduct = async (prodId: string, prodData: Partial<Product>) => {
     try {
-      const { error } = await supabase.from('products').update(prodData).eq('id', prodId);
+      // Never overwrite photos that haven't finished downloading into the editor yet.
+      const safeData: Partial<Product> = { ...prodData };
+      if (!productImageCache.current[prodId]) {
+        delete safeData.image_url;
+        delete safeData.image_urls;
+      }
+      const { error } = await supabase.from('products').update(safeData).eq('id', prodId);
       if (error) throw error;
       if (activeVendorInDashboard) {
-        const hydrated = await refetchVendor(activeVendorInDashboard.id);
-        if (hydrated) applyVendorUpdate(hydrated);
+        await reloadVendorProducts(activeVendorInDashboard.id, { forgetImagesFor: prodId });
       }
     } catch (e) {
       console.error(e);
@@ -598,9 +761,9 @@ function AppInner() {
     try {
       const { error } = await supabase.from('products').delete().eq('id', prodId);
       if (error) throw error;
+      delete productImageCache.current[prodId];
       if (activeVendorInDashboard) {
-        const hydrated = await refetchVendor(activeVendorInDashboard.id);
-        if (hydrated) applyVendorUpdate(hydrated);
+        await reloadVendorProducts(activeVendorInDashboard.id);
       }
     } catch (e) {
       console.error(e);
@@ -795,6 +958,19 @@ function AppInner() {
 
   // Render Current View
   const selectedShopVendor = vendors.find(v => v.slug === activeVendorSlug);
+
+  useEffect(() => {
+    setVisitedTabs((prev) => (prev.has(vendorDashboardTab) ? prev : new Set(prev).add(vendorDashboardTab)));
+  }, [vendorDashboardTab]);
+
+  // Download product photos for whichever shop is open (public page or dashboard).
+  const openShopKey = `${selectedShopVendor?.id ?? ''}|${activeVendorInDashboard?.id ?? ''}|${vendors.length}`;
+  useEffect(() => {
+    [selectedShopVendor, activeVendorInDashboard].forEach((v) => {
+      if (v && v.products && v.products.length > 0) void loadVendorProductImages(v.id, v.products);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openShopKey, currentView]);
 
   if (loading && vendors.length === 0) {
     return (
@@ -1090,25 +1266,69 @@ function AppInner() {
               />
             )}
 
-            {vendorDashboardTab === 'shop' && (
-              <ShopProfileForm
-                vendor={activeVendorInDashboard}
-                allCategories={categories}
-                onSaveProfile={handleSaveShopProfile}
-                onOpenCustomizer={() => setVendorDashboardTab('customize')}
-              />
+            {/* Save everything that has unsaved edits, from any tab */}
+            <div className="sticky top-0 z-30 -mx-6 md:-mx-8 -mt-6 md:-mt-8 mb-6 px-6 md:px-8 py-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="text-xs text-gray-600">
+                  {dirtySavers.length > 0 ? (
+                    <span className="font-semibold text-amber-700">
+                      Unsaved changes in: {dirtySavers.map((x) => x.label).join(', ')}
+                    </span>
+                  ) : saveAllAt ? (
+                    <span className="font-semibold text-emerald-700">
+                      All changes saved at {saveAllAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  ) : (
+                    <span>No unsaved changes. Products and lookbooks save when you press their own Save button.</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveAll}
+                  disabled={savingAll || dirtySavers.length === 0}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0F5C3A] hover:bg-[#0c4a2f] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {savingAll ? 'Saving…' : `Save all changes${dirtySavers.length ? ` (${dirtySavers.length})` : ''}`}
+                </button>
+              </div>
+              {saveAllErrors.length > 0 && (
+                <div className="mt-2">
+                  <ErrorBanner
+                    title="Some changes were not saved"
+                    message={saveAllErrors.join('  •  ')}
+                    onDismiss={() => setSaveAllErrors([])}
+                  />
+                </div>
+              )}
+            </div>
+
+            {(visitedTabs.has('shop') || vendorDashboardTab === 'shop') && (
+              <div className={vendorDashboardTab === 'shop' ? '' : 'hidden'}>
+                <ShopProfileForm
+                  key={`profile-${activeVendorInDashboard.id}`}
+                  vendor={activeVendorInDashboard}
+                  allCategories={categories}
+                  onSaveProfile={handleSaveShopProfile}
+                  onOpenCustomizer={() => setVendorDashboardTab('customize')}
+                  registerSaver={registerSaver}
+                />
+              </div>
             )}
 
-            {vendorDashboardTab === 'customize' && (
-              <ShopCustomizer
-                vendor={activeVendorInDashboard}
-                onSaveCustomization={handleSaveCustomization}
-                onOpenLiveShop={(v) => {
-                  setActiveVendorSlug(v.slug);
-                  setCurrentView('vendor_shop');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
+            {(visitedTabs.has('customize') || vendorDashboardTab === 'customize') && (
+              <div className={vendorDashboardTab === 'customize' ? '' : 'hidden'}>
+                <ShopCustomizer
+                  key={`customizer-${activeVendorInDashboard.id}`}
+                  vendor={activeVendorInDashboard}
+                  onSaveCustomization={handleSaveCustomization}
+                  registerSaver={registerSaver}
+                  onOpenLiveShop={(v) => {
+                    setActiveVendorSlug(v.slug);
+                    setCurrentView('vendor_shop');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
+              </div>
             )}
 
             {vendorDashboardTab === 'products' && (
@@ -1117,6 +1337,7 @@ function AppInner() {
                 onAddProduct={handleAddProduct}
                 onUpdateProduct={handleUpdateProduct}
                 onDeleteProduct={handleDeleteProduct}
+                loadError={productsError}
               />
             )}
 

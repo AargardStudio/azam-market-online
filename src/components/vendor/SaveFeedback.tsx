@@ -94,3 +94,13 @@ export function useUnsavedChangesGuard(dirty: boolean) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 }
+
+
+/** An editor that has (possibly unsaved) changes and knows how to save them. Used by "Save all changes". */
+export interface Saver {
+  label: string;
+  dirty: boolean;
+  /** Resolves when saved; throws an Error with a readable message when not. */
+  save: () => Promise<void>;
+}
+export type RegisterSaver = (id: string, saver: Saver | null) => void;

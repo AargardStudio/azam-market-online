@@ -12,6 +12,8 @@ interface ProductManagerProps {
   onAddProduct: (productData: Partial<Product>) => void | Promise<void>;
   onUpdateProduct: (productId: string, productData: Partial<Product>) => void | Promise<void>;
   onDeleteProduct: (productId: string) => void | Promise<void>;
+  /** Problem loading the product list (shown in a red banner). */
+  loadError?: string;
 }
 
 const FABRIC_IMAGE_PRESETS = [
@@ -30,6 +32,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  loadError,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -251,6 +254,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         </button>
       </div>
 
+      {loadError && <ErrorBanner title="Could not load products" message={loadError} />}
       {listError && <ErrorBanner title="Action failed" message={listError} onDismiss={() => setListError('')} />}
 
       {isAtLimit && (

@@ -49,6 +49,7 @@ import {
 import { Vendor, Product, Catalogue, SubscriptionTier, Market, Category, ShopCustomization, PaymentTransaction } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
 import { describeError } from '../../lib/errors';
+import { supabase } from '../../lib/supabaseClient';
 import { PaymentCheckoutModal } from '../common/PaymentCheckoutModal';
 
 interface MasterShopControlCenterProps {
@@ -1541,24 +1542,23 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                               return;
                             }
                             try {
-                              const res = await fetch(`/api/vendors/${currentInspector.id}/products`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  name: newProductName,
-                                  fabric_type: newProductFabric,
-                                  price_range: newProductPrice,
-                                  moq: newProductMoq,
-                                  image_url: newProductImage,
-                                }),
+                              const { error } = await supabase.from('products').insert({
+                                vendor_id: currentInspector.id,
+                                name: newProductName,
+                                fabric_type: newProductFabric,
+                                price_range: newProductPrice,
+                                moq: newProductMoq,
+                                image_url: newProductImage,
+                                image_urls: newProductImage ? [newProductImage] : [],
+                                is_active: true,
                               });
-                              if (res.ok) {
-                                notify('Product created for stall');
-                                setShowAddProductModal(false);
-                                onRefreshData();
-                              }
+                              if (error) throw error;
+                              notify('Product created for stall');
+                              setShowAddProductModal(false);
+                              onRefreshData();
                             } catch (e) {
                               console.error(e);
+                              notify(`Product not saved: ${describeError(e, 'unknown error')}`, 'error');
                             }
                           }}
                           className="px-4 py-1.5 rounded-lg bg-[#0F5C3A] text-white font-bold"
@@ -1573,12 +1573,18 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {currentInspector.products?.map((prod) => (
                       <div key={prod.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex gap-3 text-xs">
-                        <img
-                          src={prod.image_url}
-                          alt={prod.name}
-                          className="w-16 h-16 rounded-lg object-cover border border-gray-200 shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
+                        {prod.image_url ? (
+                          <img
+                            src={prod.image_url}
+                            alt={prod.name}
+                            className="w-16 h-16 rounded-lg object-cover border border-gray-200 shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-[9px] text-gray-500 text-center">
+                            Photo loads when you open this shop's dashboard
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="font-bold text-gray-900 truncate" title={prod.name}>
                             {prod.name}
@@ -1591,7 +1597,11 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                         <button
                           onClick={async () => {
                             if (window.confirm(`Delete product ${prod.name}?`)) {
-                              await fetch(`/api/products/${prod.id}`, { method: 'DELETE' });
+                              const { error } = await supabase.from('products').delete().eq('id', prod.id);
+                              if (error) {
+                                notify(`Product not deleted: ${describeError(error)}`, 'error');
+                                return;
+                              }
                               notify('Product deleted');
                               onRefreshData();
                             }
@@ -1679,23 +1689,20 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                               return;
                             }
                             try {
-                              const res = await fetch(`/api/vendors/${currentInspector.id}/catalogues`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  title: newCatTitle,
-                                  season: newCatSeason,
-                                  description: newCatDescription,
-                                  file_size_mb: 4.8,
-                                }),
+                              const { error } = await supabase.from('catalogues').insert({
+                                vendor_id: currentInspector.id,
+                                title: newCatTitle,
+                                season: newCatSeason,
+                                description: newCatDescription,
+                                file_size_mb: 4.8,
                               });
-                              if (res.ok) {
-                                notify('Catalogue uploaded for stall');
-                                setShowAddCatalogueModal(false);
-                                onRefreshData();
-                              }
+                              if (error) throw error;
+                              notify('Catalogue saved for stall');
+                              setShowAddCatalogueModal(false);
+                              onRefreshData();
                             } catch (e) {
                               console.error(e);
+                              notify(`Catalogue not saved: ${describeError(e, 'unknown error')}`, 'error');
                             }
                           }}
                           className="px-4 py-1.5 rounded-lg bg-[#0F5C3A] text-white font-bold"
@@ -1736,7 +1743,11 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           <button
                             onClick={async () => {
                               if (window.confirm(`Delete lookbook ${cat.title}?`)) {
-                                await fetch(`/api/catalogues/${cat.id}`, { method: 'DELETE' });
+                                const { error } = await supabase.from('catalogues').delete().eq('id', cat.id);
+                                if (error) {
+                                  notify(`Lookbook not deleted: ${describeError(error)}`, 'error');
+                                  return;
+                                }
                                 notify('Lookbook deleted');
                                 onRefreshData();
                               }

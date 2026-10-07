@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Award,
   MapPin,
@@ -58,6 +58,8 @@ export const VendorShop: React.FC<VendorShopProps> = ({
   onLogEvent,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'catalogues'>('overview');
+  const [coverFailed, setCoverFailed] = useState(false);
+  useEffect(() => setCoverFailed(false), [vendor.id, vendor.cover_url]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
@@ -196,11 +198,12 @@ export const VendorShop: React.FC<VendorShopProps> = ({
 
       {/* 3. HERO / COVER BANNER SECTION */}
       <div className="relative h-60 sm:h-72 lg:h-80 w-full overflow-hidden">
-        {coverUrl ? (
+        {coverUrl && !coverFailed ? (
           <img
             src={coverUrl}
             alt={vendor.shop_name}
             className="w-full h-full object-cover"
+            onError={() => setCoverFailed(true)}
           />
         ) : (
           <div

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Save, Palette, ArrowRight, Loader2, Undo2 } from 'lucide-react';
 import { Vendor, Category } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
-import { ErrorBanner, SaveStatus, useUnsavedChangesGuard } from './SaveFeedback';
+import { ErrorBanner, SaveStatus, useUnsavedChangesGuard, RegisterSaver } from './SaveFeedback';
 import { describeError } from '../../lib/errors';
 
 interface ShopProfileFormProps {
@@ -10,6 +10,7 @@ interface ShopProfileFormProps {
   allCategories: Category[];
   onSaveProfile: (updatedData: Partial<Vendor>) => void | Promise<void>;
   onOpenCustomizer?: () => void;
+  registerSaver?: RegisterSaver;
 }
 
 export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
@@ -17,6 +18,7 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
   allCategories,
   onSaveProfile,
   onOpenCustomizer,
+  registerSaver,
 }) => {
   const [shopName, setShopName] = useState(vendor.shop_name);
   const [stallNumber, setStallNumber] = useState(vendor.stall_number);
@@ -66,7 +68,8 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
     setSaveError('');
   };
 
-  const doSave = async () => {
+  /** Returns null on success, or the error message. */
+  const doSave = async (): Promise<string | null> => {
     const tagsArr = tagsInput
       .split(',')
       .map((t) => t.trim())
@@ -91,12 +94,30 @@ export const ShopProfileForm: React.FC<ShopProfileFormProps> = ({
       });
       setBaseline(current);
       setSavedAt(new Date());
+      return null;
     } catch (err) {
-      setSaveError(describeError(err, 'Could not save your stall profile.'));
+      const msg = describeError(err, 'Could not save your stall profile.');
+      setSaveError(msg);
+      return msg;
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Let the dashboard's "Save all changes" button save this form too.
+  const doSaveRef = useRef(doSave);
+  doSaveRef.current = doSave;
+  useEffect(() => {
+    registerSaver?.('profile', {
+      label: 'Shop profile',
+      dirty,
+      save: async () => {
+        const msg = await doSaveRef.current();
+        if (msg) throw new Error(msg);
+      },
+    });
+  }, [dirty]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => registerSaver?.('profile', null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

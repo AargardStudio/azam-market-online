@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Palette,
   Layout,
@@ -48,13 +48,14 @@ import {
 import { Vendor, ShopCustomization, DEFAULT_SHOP_CUSTOMIZATION, Product, Catalogue, PaymentTransaction } from '../../types';
 import { ImageUploader } from '../common/ImageUploader';
 import { PaymentCheckoutModal } from '../common/PaymentCheckoutModal';
-import { ErrorBanner, SaveStatus, useUnsavedChangesGuard } from './SaveFeedback';
+import { ErrorBanner, SaveStatus, useUnsavedChangesGuard, RegisterSaver } from './SaveFeedback';
 import { describeError } from '../../lib/errors';
 
 interface ShopCustomizerProps {
   vendor: Vendor;
   onSaveCustomization: (customization: ShopCustomization, publish: boolean) => Promise<void>;
   onOpenLiveShop: (vendor: Vendor) => void;
+  registerSaver?: RegisterSaver;
 }
 
 const PRESET_THEMES = [
@@ -224,6 +225,7 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
   vendor,
   onSaveCustomization,
   onOpenLiveShop,
+  registerSaver,
 }) => {
   // Initialize config with existing customization or default fallback
   const [config, setConfig] = useState<ShopCustomization>(() => initialConfigFor(vendor));
@@ -278,8 +280,8 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
    * (Previously "Save Draft" always flipped is_published to false, which
    * silently took an already-live customized shop offline for buyers.)
    */
-  const handleSave = async () => {
-    if (isSaving) return;
+  const handleSave = async (): Promise<string | null> => {
+    if (isSaving) return null;
     setIsSaving(true);
     setSaveError('');
     try {
@@ -291,13 +293,31 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
       setSavedConfig(updated);
       setSavedAt(new Date());
       showToast(live ? 'Saved — your changes are live on the shop.' : 'Draft saved. Click "Publish" when ready to make it live.');
+      return null;
     } catch (err) {
       console.error(err);
-      setSaveError(describeError(err, 'Your changes could not be saved.'));
+      const msg = describeError(err, 'Your changes could not be saved.');
+      setSaveError(msg);
+      return msg;
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Let the dashboard's "Save all changes" button save this editor too.
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    registerSaver?.('customizer', {
+      label: 'Shop customizer',
+      dirty,
+      save: async () => {
+        const msg = await handleSaveRef.current();
+        if (msg) throw new Error(msg);
+      },
+    });
+  }, [dirty]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => registerSaver?.('customizer', null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Explicitly take the customized shop offline and keep edits as a draft. */
   const handleSaveDraft = async () => {
@@ -969,11 +989,15 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
 
                   <div className="mt-3">
                     <ImageUploader
-                      value={config.hero_cover_url}
+                      value={config.hero_cover_url || vendor.cover_url || ''}
                       onChange={(url) => setConfig((prev) => ({ ...prev, hero_cover_url: url }))}
                       aspect="cover"
                       label="Upload Custom Hero Cover Banner"
-                      description="Panoramic fabric banner (wide 16:9 or 3:1) for your storefront header."
+                      description={
+                        !config.hero_cover_url && vendor.cover_url
+                          ? 'Currently showing the banner from your Shop Profile. Upload here only to use a different banner on your storefront; "Remove Image" goes back to the profile banner.'
+                          : 'Panoramic fabric banner (wide 16:9 or 3:1) for your storefront header.'
+                      }
                       placeholderText="Upload panoramic banner or paste image URL..."
                     />
                   </div>
@@ -2037,8 +2061,8 @@ export const ShopCustomizer: React.FC<ShopCustomizerProps> = ({
                   className="relative h-44 sm:h-52 w-full flex items-end p-5 text-white"
                   style={{
                     backgroundColor: config.theme_color,
-                    backgroundImage: config.hero_cover_url
-                      ? `linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.3)), url(${config.hero_cover_url})`
+                    backgroundImage: (config.hero_cover_url || vendor.cover_url)
+                      ? `linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.3)), url("${config.hero_cover_url || vendor.cover_url}")`
                       : `linear-gradient(135deg, ${config.theme_color}, #072e1d)`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
