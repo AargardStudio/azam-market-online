@@ -362,8 +362,6 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                   </span>
                   <span>•</span>
                   <span>{marketLine}</span>
-                  <span>•</span>
-                  <span>{vendor.profile_views} Stall Views</span>
                 </div>
               </div>
             </div>

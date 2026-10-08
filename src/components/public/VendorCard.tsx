@@ -51,7 +51,6 @@ export const VendorCard: React.FC<VendorCardProps> = ({
   return (
     <div
       onClick={() => {
-        onLogEvent(vendor.id, 'profile_view');
         onSelectVendor(vendor.slug);
       }}
       className="bg-white rounded-2xl border border-gray-200 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden group flex flex-col cursor-pointer transform hover:-translate-y-1"

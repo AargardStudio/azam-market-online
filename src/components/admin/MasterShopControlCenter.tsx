@@ -154,7 +154,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
 
     const totalViews = vendors.reduce((sum, v) => sum + (v.profile_views || 0), 0);
     const totalWhatsapp = vendors.reduce((sum, v) => sum + (v.whatsapp_clicks || 0), 0);
-    const totalCalls = vendors.reduce((sum, v) => sum + (v.call_clicks || Math.round((v.whatsapp_clicks || 0) * 0.45)), 0);
+    const totalCalls = vendors.reduce((sum, v) => sum + (v.call_clicks || 0), 0);
     const totalMessages = vendors.reduce((sum, v) => sum + (v.message_clicks || v.email_clicks || 0), 0);
     const totalCatalogues = vendors.reduce((sum, v) => sum + (v.catalogues?.length || 0), 0);
     const totalProducts = vendors.reduce((sum, v) => sum + (v.products?.length || 0), 0);
@@ -721,7 +721,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                     <div>
                       <div className="text-[9px] text-gray-400 font-bold uppercase">Calls</div>
                       <div className="font-bold text-blue-600 text-xs">
-                        {(vendor.call_clicks || Math.round((vendor.whatsapp_clicks || 0) * 0.45)).toLocaleString()}
+                        {(vendor.call_clicks || 0).toLocaleString()}
                       </div>
                     </div>
                     <div>
@@ -877,7 +877,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                         <div className="text-[10px] text-gray-500">
                           <span className="text-[#25D366] font-bold">{vendor.whatsapp_clicks || 0} WA</span> •{' '}
                           <span className="text-blue-600 font-bold">
-                            {vendor.call_clicks || Math.round((vendor.whatsapp_clicks || 0) * 0.45)} Calls
+                            {(vendor.call_clicks || 0)} Calls
                           </span>
                         </div>
                       </td>
@@ -1879,9 +1879,9 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
               {activeAspectTab === 'stats' && (
                 <div className="space-y-4 text-xs">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Stall Engagement Numbers & Calibrator</h3>
+                    <h3 className="text-sm font-bold text-gray-900">Stall Engagement Numbers (Live)</h3>
                     <p className="text-xs text-gray-500">
-                      Audit and calibrate engagement metrics (Shop views, WhatsApp inquiries, telephone calls, and messages).
+                      Real counts recorded from visitor activity on the public site (shop views, WhatsApp, calls, messages). They update automatically and cannot be edited by hand.
                     </p>
                   </div>
 
@@ -1890,11 +1890,8 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                       <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Shop Profile Views</label>
                       <input
                         type="number"
-                        defaultValue={currentInspector.profile_views || 0}
-                        onBlur={async (e) => {
-                          await onUpdateVendor(currentInspector.id, { profile_views: parseInt(e.target.value) || 0 });
-                          notify('Views calibrated');
-                        }}
+                        value={currentInspector.profile_views || 0}
+                        readOnly
                         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-bold font-serif text-sm"
                       />
                     </div>
@@ -1903,11 +1900,8 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                       <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">WhatsApp Inquiries</label>
                       <input
                         type="number"
-                        defaultValue={currentInspector.whatsapp_clicks || 0}
-                        onBlur={async (e) => {
-                          await onUpdateVendor(currentInspector.id, { whatsapp_clicks: parseInt(e.target.value) || 0 });
-                          notify('WhatsApp count calibrated');
-                        }}
+                        value={currentInspector.whatsapp_clicks || 0}
+                        readOnly
                         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-bold font-serif text-sm text-[#25D366]"
                       />
                     </div>
@@ -1916,11 +1910,8 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                       <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Direct Stall Calls</label>
                       <input
                         type="number"
-                        defaultValue={currentInspector.call_clicks || Math.round((currentInspector.whatsapp_clicks || 0) * 0.45)}
-                        onBlur={async (e) => {
-                          await onUpdateVendor(currentInspector.id, { call_clicks: parseInt(e.target.value) || 0 });
-                          notify('Call count calibrated');
-                        }}
+                        value={(currentInspector.call_clicks || 0)}
+                        readOnly
                         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-bold font-serif text-sm text-blue-600"
                       />
                     </div>
@@ -1929,11 +1920,8 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                       <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Form & Direct Messages</label>
                       <input
                         type="number"
-                        defaultValue={currentInspector.message_clicks || currentInspector.email_clicks || 0}
-                        onBlur={async (e) => {
-                          await onUpdateVendor(currentInspector.id, { message_clicks: parseInt(e.target.value) || 0 });
-                          notify('Messages calibrated');
-                        }}
+                        value={currentInspector.message_clicks || currentInspector.email_clicks || 0}
+                        readOnly
                         className="w-full p-2 bg-white border border-gray-200 rounded-lg font-bold font-serif text-sm text-purple-600"
                       />
                     </div>

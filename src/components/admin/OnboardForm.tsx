@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { UserPlus, CheckCircle2, Award, ShieldCheck } from 'lucide-react';
 import { Market, Category, SubscriptionTier, Vendor } from '../../types';
+import { ErrorBanner } from '../vendor/SaveFeedback';
+import { describeError } from '../../lib/errors';
 
 interface OnboardFormProps {
   markets: Market[];
   categories: Category[];
   tiers: SubscriptionTier[];
-  onOnboardVendor: (vendorData: Partial<Vendor>) => void;
+  onOnboardVendor: (vendorData: Partial<Vendor>) => void | Promise<void>;
 }
 
 export const OnboardForm: React.FC<OnboardFormProps> = ({
@@ -26,28 +28,41 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
   const [selectedCatIds, setSelectedCatIds] = useState<string[]>([categories[0]?.id || 'c-silk']);
   const [successMsg, setSuccessMsg] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onOnboardVendor({
-      shop_name: shopName,
-      stall_number: stallNumber,
-      market_id: marketId,
-      tier_id: tierId,
-      whatsapp,
-      email,
-      description: description || `Verified wholesale fabric vendor in ${markets.find(m=>m.id===marketId)?.name || 'Azam Cloth Market'}.`,
-      is_verified: isVerified,
-      status: 'active',
-      category_ids: selectedCatIds,
-    } as any);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-    setSuccessMsg(true);
-    setShopName('');
-    setStallNumber('');
-    setWhatsapp('');
-    setEmail('');
-    setDescription('');
-    setTimeout(() => setSuccessMsg(false), 4000);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      await onOnboardVendor({
+        shop_name: shopName,
+        stall_number: stallNumber,
+        market_id: marketId,
+        tier_id: tierId,
+        whatsapp,
+        email,
+        description: description || `Verified wholesale fabric vendor in ${markets.find(m=>m.id===marketId)?.name || 'Azam Cloth Market'}.`,
+        is_verified: isVerified,
+        status: 'active',
+        category_ids: selectedCatIds,
+      } as any);
+
+      // Only clear the form (and show success) when the stall was really saved.
+      setSuccessMsg(true);
+      setShopName('');
+      setStallNumber('');
+      setWhatsapp('');
+      setEmail('');
+      setDescription('');
+      setTimeout(() => setSuccessMsg(false), 4000);
+    } catch (err) {
+      setSaveError(describeError(err, 'The stall could not be added.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const MAX_CATEGORIES = 3;
@@ -83,6 +98,12 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
           </span>
         )}
       </div>
+
+      {saveError && (
+        <div className="mb-4">
+          <ErrorBanner title="Stall not added" message={saveError} onDismiss={() => setSaveError('')} />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -230,10 +251,11 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
         <div className="pt-4 border-t border-gray-100 flex justify-end">
           <button
             type="submit"
-            className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
+            disabled={isSaving}
+            className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Onboard & Activate Vendor</span>
+            <span>{isSaving ? 'Adding stall…' : 'Onboard & Activate Vendor'}</span>
           </button>
         </div>
       </form>

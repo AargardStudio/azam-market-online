@@ -448,6 +448,9 @@ function AppInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Re-run the analytics query whenever this ticks (live refresh while the dashboard is open).
+  const [analyticsTick, setAnalyticsTick] = useState(0);
+
   // Fetch Vendor Analytics (last 30 days, from inquiry_logs) when active vendor changes
   useEffect(() => {
     if (!activeVendorInDashboard) return;
@@ -539,7 +542,63 @@ function AppInner() {
     return () => {
       cancelled = true;
     };
-  }, [activeVendorInDashboard?.id]);
+  }, [activeVendorInDashboard?.id, analyticsTick]);
+
+  // ---------------------------------------------------------------------
+  // Live stats. While a vendor dashboard is open: refresh the charts and the
+  // headline counters every 20s, when the tab regains focus, and instantly
+  // when Supabase Realtime pushes a new event for this shop (needs the
+  // inquiry_logs table in the supabase_realtime publication; polling covers it otherwise).
+  // ---------------------------------------------------------------------
+  const COUNTER_COLS = 'profile_views,whatsapp_clicks,email_clicks,call_clicks,message_clicks';
+  useEffect(() => {
+    const vendorId = activeVendorInDashboard?.id;
+    if (currentView !== 'vendor_dashboard' || !vendorId) return;
+
+    const refresh = async () => {
+      setAnalyticsTick((t) => t + 1);
+      const { data } = await supabase.from('vendors').select(COUNTER_COLS).eq('id', vendorId).single();
+      if (data) {
+        setVendors((prev) => prev.map((v) => (v.id === vendorId ? { ...v, ...data } : v)));
+        setActiveVendorInDashboard((prev) => (prev && prev.id === vendorId ? { ...prev, ...data } : prev));
+      }
+    };
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, 20000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    const channel = supabase
+      .channel(`inquiry-logs-${vendorId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inquiry_logs', filter: `vendor_id=eq.${vendorId}` }, () => {
+        void refresh();
+      })
+      .subscribe();
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      void supabase.removeChannel(channel);
+    };
+  }, [currentView, activeVendorInDashboard?.id]);
+
+  // Admin: keep every stall's counters current while the admin dashboard is open.
+  useEffect(() => {
+    if (currentView !== 'admin_dashboard') return;
+    const refresh = async () => {
+      const { data } = await supabase.from('vendors').select(`id,${COUNTER_COLS}`);
+      if (!data) return;
+      const byId = new Map(data.map((r: any) => [r.id, r]));
+      setVendors((prev) => prev.map((v) => (byId.has(v.id) ? { ...v, ...(byId.get(v.id) as object) } : v)));
+    };
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [currentView]);
 
   // Handle Event Logging (WhatsApp click, Email click, Call click, Message click, Profile view, Catalogue download)
   // Vendor stat counters (profile_views, whatsapp_clicks, ...) and
@@ -804,19 +863,41 @@ function AppInner() {
     `${s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}-${Date.now().toString(36)}`;
 
   const handleOnboardVendor = async (vendorData: Partial<Vendor>) => {
+    // category_ids is not a column on `vendors`; it goes to the vendor_categories join table.
+    const { category_ids: categoryIds, ...columns } = vendorData as Partial<Vendor> & { category_ids?: string[] };
+    const defaultMarketId = vendorData.market_id || markets[0]?.id;
+    if (!defaultMarketId) throw new Error('Choose a market for this stall (no markets are loaded).');
+    if (!vendorData.shop_name?.trim()) throw new Error('Shop name is required.');
+    if (!vendorData.email?.trim()) throw new Error('Email is required.');
+    if ((categoryIds?.length ?? 0) > 3) throw new Error('A stall can have at most 3 categories.');
+
     try {
-      const defaultMarketId = vendorData.market_id || markets[0]?.id;
-      const { error } = await supabase.from('vendors').insert({
-        tier_id: 't-standard',
-        status: 'active', // admin-onboarded stalls go live immediately (RLS allows this for admins)
-        ...vendorData,
-        market_id: defaultMarketId,
-        slug: vendorData.slug || slugify(vendorData.shop_name || 'stall'),
-      });
+      const { data: created, error } = await supabase
+        .from('vendors')
+        .insert({
+          tier_id: 't-standard',
+          status: 'active', // admin-onboarded stalls go live immediately (RLS allows this for admins)
+          ...columns,
+          market_id: defaultMarketId,
+          slug: vendorData.slug || slugify(vendorData.shop_name || 'stall'),
+        })
+        .select('id')
+        .single();
       if (error) throw error;
-      fetchAllData();
+
+      if (categoryIds && categoryIds.length > 0) {
+        const { error: catErr } = await supabase
+          .from('vendor_categories')
+          .insert(categoryIds.map((category_id) => ({ vendor_id: created.id, category_id })));
+        if (catErr) {
+          await fetchAllData();
+          throw new Error(`The stall was created, but its categories could not be saved: ${describeError(catErr)}`);
+        }
+      }
+      await fetchAllData();
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 
@@ -962,6 +1043,23 @@ function AppInner() {
   useEffect(() => {
     setVisitedTabs((prev) => (prev.has(vendorDashboardTab) ? prev : new Set(prev).add(vendorDashboardTab)));
   }, [vendorDashboardTab]);
+
+  // Count one real "stall view" each time a buyer opens a shop page (once per browser
+  // session per shop). The owner's own visits and admin visits are not counted.
+  useEffect(() => {
+    if (currentView !== 'vendor_shop' || !selectedShopVendor) return;
+    const isOwnerOrAdmin = isAdminAuthenticated || activeVendorInDashboard?.id === selectedShopVendor.id;
+    if (isOwnerOrAdmin) return;
+    const key = `amo_viewed_${selectedShopVendor.id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch {
+      /* storage blocked: still count once per page load below */
+    }
+    void logEvent(selectedShopVendor.id, 'profile_view');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView, selectedShopVendor?.id]);
 
   // Download product photos for whichever shop is open (public page or dashboard).
   const openShopKey = `${selectedShopVendor?.id ?? ''}|${activeVendorInDashboard?.id ?? ''}|${vendors.length}`;
