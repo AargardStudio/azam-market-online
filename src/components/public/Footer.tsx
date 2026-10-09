@@ -73,7 +73,7 @@ export const Footer: React.FC<FooterProps> = ({
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>WhatsApp Field Helpline: +92 300 4211985</span>
+                <span>WhatsApp Field Helpline: +92 322 4494169</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-blue-400 shrink-0" />
