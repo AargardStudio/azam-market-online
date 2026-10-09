@@ -1341,7 +1341,7 @@ function AppInner() {
 
       {/* VENDOR DASHBOARD SURFACE */}
       {currentView === 'vendor_dashboard' && activeVendorInDashboard && (
-        <div className="flex min-h-screen">
+        <div className="flex flex-col md:flex-row min-h-screen">
           <VendorSidebar
             vendors={vendors}
             activeVendor={activeVendorInDashboard}
@@ -1355,7 +1355,7 @@ function AppInner() {
             }}
           />
 
-          <main className="flex-1 p-6 md:p-8 bg-gray-50 overflow-y-auto">
+          <main className="flex-1 min-w-0 p-4 pb-28 md:p-8 md:pb-8 bg-gray-50 overflow-y-auto">
             {vendorDashboardTab === 'overview' && vendorAnalytics && (
               <VendorOverview
                 vendor={activeVendorInDashboard}
@@ -1365,9 +1365,9 @@ function AppInner() {
             )}
 
             {/* Save everything that has unsaved edits, from any tab */}
-            <div className="sticky top-0 z-30 -mx-6 md:-mx-8 -mt-6 md:-mt-8 mb-6 px-6 md:px-8 py-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="text-xs text-gray-600">
+            <div className="sticky top-0 z-30 -mx-4 md:-mx-8 -mt-4 md:-mt-8 mb-4 md:mb-6 px-4 md:px-8 py-2 md:py-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] md:text-xs text-gray-600 min-w-0">
                   {dirtySavers.length > 0 ? (
                     <span className="font-semibold text-amber-700">
                       Unsaved changes in: {dirtySavers.map((x) => x.label).join(', ')}
@@ -1377,14 +1377,14 @@ function AppInner() {
                       All changes saved at {saveAllAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   ) : (
-                    <span>No unsaved changes. Products and lookbooks save when you press their own Save button.</span>
+                    <span><span className="md:hidden">No unsaved changes</span><span className="hidden md:inline">No unsaved changes. Products and lookbooks save when you press their own Save button.</span></span>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={handleSaveAll}
                   disabled={savingAll || dirtySavers.length === 0}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0F5C3A] hover:bg-[#0c4a2f] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="shrink-0 min-h-[44px] md:min-h-0 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0F5C3A] hover:bg-[#0c4a2f] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {savingAll ? 'Saving…' : `Save all changes${dirtySavers.length ? ` (${dirtySavers.length})` : ''}`}
                 </button>

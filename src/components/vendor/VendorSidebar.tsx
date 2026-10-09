@@ -1,5 +1,5 @@
-import React from 'react';
-import { LayoutDashboard, Store, Palette, ShoppingBag, FileText, BarChart3, ShieldCheck, LogOut, ArrowLeft, RefreshCw, Sparkles, Bell, LifeBuoy } from 'lucide-react';
+import React, { useState } from 'react';
+import { LayoutDashboard, Store, Palette, ShoppingBag, FileText, BarChart3, ShieldCheck, LogOut, ArrowLeft, RefreshCw, Sparkles, Bell, LifeBuoy, MoreHorizontal, X } from 'lucide-react';
 import { Vendor } from '../../types';
 
 interface VendorSidebarProps {
@@ -19,8 +19,95 @@ export const VendorSidebar: React.FC<VendorSidebarProps> = ({
   onSelectTab,
   onExitToDirectory,
 }) => {
+  const [moreOpen, setMoreOpen] = useState(false);
+  type Tab = VendorSidebarProps['activeTab'];
+  const primary: { id: Tab; label: string; Icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Home', Icon: LayoutDashboard },
+    { id: 'shop', label: 'Profile', Icon: Store },
+    { id: 'products', label: 'Products', Icon: ShoppingBag },
+    { id: 'customize', label: 'Design', Icon: Palette },
+  ];
+  const more: { id: Tab; label: string; Icon: React.ElementType }[] = [
+    { id: 'catalogues', label: 'PDF Catalogues', Icon: FileText },
+    { id: 'analytics', label: 'Inquiry Analytics', Icon: BarChart3 },
+    { id: 'subscription', label: 'Subscription Tier', Icon: ShieldCheck },
+    { id: 'updates', label: 'Updates & Assistance', Icon: Bell },
+  ];
+  const moreActive = more.some((m) => m.id === activeTab);
   return (
-    <aside className="w-64 bg-[#0F5C3A] text-white min-h-screen p-4 flex flex-col justify-between border-r border-emerald-900 shadow-xl">
+    <>
+    {/* MOBILE: top bar */}
+    <header className="md:hidden bg-[#0F5C3A] text-white px-4 py-3 flex items-center justify-between gap-3 border-b border-emerald-900">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-9 h-9 shrink-0 rounded-full bg-[#C9952A] text-white font-bold flex items-center justify-center font-serif text-sm">
+          {activeVendor.shop_name[0]}
+        </div>
+        <div className="min-w-0">
+          <div className="font-bold text-sm truncate">{activeVendor.shop_name}</div>
+          <div className="text-[11px] text-emerald-200 truncate">
+            Stall {activeVendor.stall_number} · <span className="capitalize text-[#C9952A] font-bold">{activeVendor.status}</span>
+          </div>
+        </div>
+      </div>
+      <button onClick={onExitToDirectory} className="shrink-0 min-h-[44px] px-3 text-xs text-emerald-100 flex items-center gap-1 cursor-pointer">
+        <ArrowLeft className="w-4 h-4" /> Public
+      </button>
+    </header>
+
+    {/* MOBILE: bottom tab bar */}
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 grid grid-cols-5 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+      {primary.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          onClick={() => { setMoreOpen(false); onSelectTab(id); }}
+          className={`min-h-[56px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold cursor-pointer ${activeTab === id ? 'text-[#0F5C3A]' : 'text-gray-500'}`}
+        >
+          <Icon className="w-5 h-5" />
+          {label}
+        </button>
+      ))}
+      <button
+        onClick={() => setMoreOpen(true)}
+        className={`min-h-[56px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold cursor-pointer ${moreActive ? 'text-[#0F5C3A]' : 'text-gray-500'}`}
+      >
+        <MoreHorizontal className="w-5 h-5" />
+        More
+      </button>
+    </nav>
+
+    {/* MOBILE: More sheet */}
+    {moreOpen && (
+      <div className="md:hidden fixed inset-0 z-50 flex items-end bg-black/40" onClick={() => setMoreOpen(false)}>
+        <div className="w-full bg-white rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-bold text-gray-900">More</span>
+            <button onClick={() => setMoreOpen(false)} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-500 cursor-pointer" aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {more.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => { setMoreOpen(false); onSelectTab(id); }}
+              className={`w-full min-h-[48px] flex items-center gap-3 px-3 rounded-xl text-sm font-semibold cursor-pointer ${activeTab === id ? 'bg-[#E8F5EE] text-[#0F5C3A]' : 'text-gray-700 bg-gray-50'}`}
+            >
+              <Icon className="w-5 h-5" /> {label}
+            </button>
+          ))}
+          {vendors.length > 1 && (
+            <select
+              value={activeVendor.id}
+              onChange={(e) => { const f = vendors.find((v) => v.id === e.target.value); if (f) onSelectVendor(f); setMoreOpen(false); }}
+              className="w-full min-h-[48px] bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm font-semibold"
+            >
+              {vendors.map((v) => (<option key={v.id} value={v.id}>{v.shop_name}</option>))}
+            </select>
+          )}
+        </div>
+      </div>
+    )}
+
+    <aside className="hidden md:flex w-64 bg-[#0F5C3A] text-white min-h-screen p-4 flex flex-col justify-between border-r border-emerald-900 shadow-xl">
       <div className="space-y-6">
         {/* Top Vendor Portal Header */}
         <div className="space-y-3 pb-4 border-b border-emerald-800">
@@ -195,5 +282,6 @@ export const VendorSidebar: React.FC<VendorSidebarProps> = ({
         </div>
       </div>
     </aside>
+    </>
   );
 };
