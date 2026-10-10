@@ -1472,7 +1472,7 @@ function AppInner() {
 
       {/* AARGARD ADMIN DASHBOARD SURFACE */}
       {currentView === 'admin_dashboard' && adminMetrics && (
-        <div className="flex min-h-screen">
+        <div className="flex flex-col md:flex-row min-h-screen">
           <AdminSidebar
             pendingCount={vendors.filter((v) => v.status === 'pending').length}
             activeTab={adminTab}
@@ -1484,7 +1484,7 @@ function AppInner() {
             }}
           />
 
-          <main className="flex-1 p-6 md:p-8 bg-gray-50 overflow-y-auto">
+          <main className="flex-1 min-w-0 p-4 pb-28 md:p-8 md:pb-8 bg-gray-50 overflow-y-auto">
             {adminTab === 'overview' && (
               <AdminOverview
                 metrics={adminMetrics}

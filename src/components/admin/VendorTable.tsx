@@ -92,8 +92,72 @@ export const VendorTable: React.FC<VendorTableProps> = ({
         </div>
       </div>
 
+      {/* Phone: card list */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((v) => (
+          <div key={v.id} className="border border-gray-200 rounded-xl p-3 space-y-3 bg-white">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-lg bg-[#0F5C3A] text-white font-serif font-bold flex items-center justify-center shrink-0">
+                {v.shop_name[0]}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-gray-900 text-sm flex items-center gap-1">
+                  <span className="truncate">{v.shop_name}</span>
+                  {v.is_verified && <Award className="w-3.5 h-3.5 text-[#C9952A] shrink-0" />}
+                </div>
+                <div className="text-[11px] text-gray-500 truncate">
+                  Stall {v.stall_number} · {v.market?.name || 'Azam Cloth Market'}
+                </div>
+              </div>
+              <span
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase shrink-0 ${
+                  v.status === 'active' ? 'bg-emerald-100 text-[#0F5C3A]' : v.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                }`}
+              >
+                {v.status}
+              </span>
+            </div>
+            <div className="text-xs text-gray-700">
+              <div className="font-bold">{v.whatsapp}</div>
+              <div className="text-gray-400 truncate">{v.email}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">{v.products?.length || 0} Products • {v.catalogues?.length || 0} Lookbooks</div>
+            </div>
+            <select
+              value={v.tier_id}
+              onChange={(e) => onUpdateVendorTier(v.id, e.target.value)}
+              className="w-full min-h-[44px] bg-emerald-50 text-[#0F5C3A] font-bold text-xs px-3 rounded-lg border border-emerald-200"
+            >
+              {tiers
+                .filter((t) => t.is_available || t.price_usd > 0 || v.tier_id === t.id)
+                .map((t) => (
+                  <option key={t.id} value={t.id} disabled={!t.is_available && v.tier_id !== t.id}>
+                    {t.display_name} (${t.price_usd.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
+                  </option>
+                ))}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              {v.status === 'pending' && (
+                <button onClick={() => onUpdateVendorStatus(v.id, 'active')} className="min-h-[44px] bg-[#0F5C3A] text-white text-xs font-bold rounded-lg">Approve</button>
+              )}
+              {v.status === 'active' && (
+                <button onClick={() => onUpdateVendorStatus(v.id, 'suspended')} className="min-h-[44px] bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-200">Suspend</button>
+              )}
+              {v.status === 'suspended' && (
+                <button onClick={() => onUpdateVendorStatus(v.id, 'active')} className="min-h-[44px] bg-emerald-50 text-[#0F5C3A] text-xs font-bold rounded-lg border border-emerald-200">Reinstate</button>
+              )}
+              <button onClick={() => onSelectVendorToEdit(v)} className="min-h-[44px] bg-gray-100 text-gray-800 text-xs font-bold rounded-lg border border-gray-300 flex items-center justify-center gap-1">
+                <Sliders className="w-3.5 h-3.5 text-[#0F5C3A]" /> Aspects
+              </button>
+              <button onClick={() => onViewLiveShop(v.slug)} className="min-h-[44px] text-gray-700 text-xs font-bold rounded-lg border border-gray-200 flex items-center justify-center gap-1">
+                <Eye className="w-3.5 h-3.5" /> View Shop
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-xl">
+      <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-xl">
         <table className="w-full text-left text-xs">
           <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[10px] border-b border-gray-200">
             <tr>
