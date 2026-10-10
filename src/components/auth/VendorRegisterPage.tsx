@@ -63,7 +63,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   // (e.g. Premium while it's paused) still shows up, just disabled, so
   // vendors know it exists.
   const sortedTiers = [...tiers]
-    .filter((t) => t.is_available || t.price_usd > 0)
+    .filter((t) => t.is_available)
     .sort((a, b) => a.price_usd - b.price_usd);
   const effectiveTierId = tierId || sortedTiers.find((t) => t.is_available)?.id || sortedTiers[0]?.id || 't-standard';
   const effectiveMarketId = marketId;
@@ -417,7 +417,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
             <label className="font-bold text-gray-700 block mb-1.5 text-xs">
               Subscription Tier <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {sortedTiers.map((tier) => {
                 const checked = effectiveTierId === tier.id;
                 const unavailable = !tier.is_available;
@@ -447,6 +447,11 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
                     <p className="text-sm font-bold text-[#0F5C3A] mt-1">
                       {tier.price_usd > 0 ? `$${tier.price_usd.toLocaleString()}/mo` : 'Free'}
                     </p>
+                    {tier.price_usd > 0 && (
+                      <span className="inline-block mt-1 bg-emerald-100 text-[#0F5C3A] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        30 days free
+                      </span>
+                    )}
                     <p className="text-[10px] text-gray-500 mt-0.5">
                       {tier.max_products === -1 ? 'Unlimited products' : `Up to ${tier.max_products} products`}
                     </p>
