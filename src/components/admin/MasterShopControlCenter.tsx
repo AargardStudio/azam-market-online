@@ -1275,6 +1275,64 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           className="w-4 h-4 text-[#0F5C3A] rounded-sm"
                         />
                       </label>
+
+                      {/* Free trial (30 days from registration). Admins can extend. */}
+                      {!currentInspector.is_subscription_exempt && (() => {
+                        const ends = currentInspector.trial_ends_at ? new Date(currentInspector.trial_ends_at) : null;
+                        const daysLeft = ends ? Math.ceil((ends.getTime() - Date.now()) / 86400000) : 0;
+                        const isTrial = currentInspector.subscription_status === 'trialing';
+                        const extend = async (days: number) => {
+                          const base = ends && ends.getTime() > Date.now() ? ends.getTime() : Date.now();
+                          const next = new Date(base + days * 86400000).toISOString();
+                          await onUpdateVendor(currentInspector.id, { trial_ends_at: next, subscription_status: 'trialing' } as any);
+                          notify(`Trial extended by ${days} days`);
+                        };
+                        return (
+                          <div className="p-3 bg-white rounded-xl border border-gray-200 sm:col-span-2 space-y-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div>
+                                <div className="font-bold text-gray-900">Free Trial</div>
+                                <div className="text-[11px] text-gray-500">
+                                  {currentInspector.subscription_status === 'active'
+                                    ? 'Paying subscriber'
+                                    : isTrial
+                                    ? daysLeft > 0
+                                      ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left (ends ${ends?.toLocaleDateString()})`
+                                      : `Trial ended ${ends?.toLocaleDateString()} — shop hidden from directory`
+                                    : `Status: ${currentInspector.subscription_status} — shop hidden from directory`}
+                                </div>
+                              </div>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {[7, 14, 30].map((d) => (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => extend(d)}
+                                    className="min-h-[36px] px-3 bg-emerald-50 hover:bg-emerald-100 text-[#0F5C3A] text-[11px] font-bold rounded-lg border border-emerald-200 cursor-pointer"
+                                  >
+                                    +{d} days
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-gray-600">
+                              <span>Set end date:</span>
+                              <input
+                                type="date"
+                                defaultValue={ends ? ends.toISOString().slice(0, 10) : ''}
+                                onBlur={async (e) => {
+                                  if (!e.target.value) return;
+                                  const next = new Date(e.target.value + 'T23:59:59').toISOString();
+                                  if (ends && next.slice(0, 10) === ends.toISOString().slice(0, 10)) return;
+                                  await onUpdateVendor(currentInspector.id, { trial_ends_at: next, subscription_status: 'trialing' } as any);
+                                  notify('Trial end date updated');
+                                }}
+                                className="px-2 py-1 border border-gray-200 rounded-lg text-xs"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
