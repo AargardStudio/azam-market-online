@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Tag, Edit3, Trash2 } from 'lucide-react';
 import { Category } from '../../types';
+import { ErrorBanner } from '../vendor/SaveFeedback';
 
 interface CategoryManagerProps {
   categories: Category[];
-  onAddCategory: (name: string, icon: string) => void;
+  onAddCategory: (name: string, icon: string) => Promise<void>;
 }
 
 export const CategoryManager: React.FC<CategoryManagerProps> = ({
@@ -14,11 +15,26 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🧵');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [added, setAdded] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
-    onAddCategory(name, icon);
-    setName('');
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError('');
+    setAdded('');
+    try {
+      await onAddCategory(name, icon);
+      setAdded(name.trim());
+      setName('');
+      setTimeout(() => setAdded(''), 4000);
+    } catch (err: any) {
+      setError(err?.message || 'Could not add the category. Make sure you are logged in as an admin.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -53,11 +69,18 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
 
         <button
           type="submit"
-          className="bg-[#0F5C3A] hover:bg-[#1A7A4F] text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"
+          disabled={saving}
+          className="bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"
         >
-          <Plus className="w-4 h-4" /> Add Category
+          <Plus className="w-4 h-4" /> {saving ? 'Adding…' : 'Add Category'}
         </button>
       </form>
+      {error && <ErrorBanner title="Category not added" message={error} onDismiss={() => setError('')} />}
+      {added && (
+        <div className="bg-emerald-50 border border-emerald-200 text-[#0F5C3A] rounded-xl p-3 text-xs font-bold">
+          “{added}” added.
+        </div>
+      )}
 
       {/* Categories Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

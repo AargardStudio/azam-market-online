@@ -1,21 +1,33 @@
 import React, { useState } from 'react';
 import { Plus, MapPin } from 'lucide-react';
 import { Market } from '../../types';
+import { ErrorBanner } from '../vendor/SaveFeedback';
 
 interface MarketManagerProps {
   markets: Market[];
-  onAddMarket: (name: string, city: string) => void;
+  onAddMarket: (name: string, city: string) => Promise<void>;
 }
 
 export const MarketManager: React.FC<MarketManagerProps> = ({ markets, onAddMarket }) => {
   const [name, setName] = useState('');
   const [city, setCity] = useState('Lahore');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
-    onAddMarket(name, city);
-    setName('');
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      await onAddMarket(name, city);
+      setName('');
+    } catch (err: any) {
+      setError(err?.message || 'Could not add the market.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -56,6 +68,7 @@ export const MarketManager: React.FC<MarketManagerProps> = ({ markets, onAddMark
           <Plus className="w-4 h-4" /> Add Market
         </button>
       </form>
+      {error && <ErrorBanner title="Market not added" message={error} onDismiss={() => setError('')} />}
 
       {/* Markets List */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

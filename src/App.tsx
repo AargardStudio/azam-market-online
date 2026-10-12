@@ -1008,33 +1008,31 @@ function AppInner() {
   };
 
   const handleAddCategory = async (name: string, icon: string) => {
-    try {
-      const { error } = await supabase.from('categories').insert({
-        name,
-        icon,
-        slug: slugify(name),
-        market_id: markets[0]?.id ?? null,
-      });
-      if (error) throw error;
-      fetchAllData();
-    } catch (e) {
-      console.error(e);
+    const { error } = await supabase.from('categories').insert({
+      name: name.trim(),
+      icon: icon.trim() || '🧵',
+      slug: slugify(name),
+      market_id: markets[0]?.id ?? null,
+    });
+    if (error) {
+      console.error(error);
+      throw new Error(error.message || 'Could not add the category.');
     }
+    await fetchAllData();
   };
 
   const handleAddMarket = async (name: string, city: string) => {
-    try {
-      const { error } = await supabase.from('markets').insert({
-        name,
-        city,
-        slug: slugify(name),
-        country: 'Pakistan',
-      });
-      if (error) throw error;
-      fetchAllData();
-    } catch (e) {
-      console.error(e);
+    const { error } = await supabase.from('markets').insert({
+      name: name.trim(),
+      city: city.trim(),
+      slug: slugify(name),
+      country: 'Pakistan',
+    });
+    if (error) {
+      console.error(error);
+      throw new Error(error.message || 'Could not add the market.');
     }
+    await fetchAllData();
   };
 
   // Render Current View
