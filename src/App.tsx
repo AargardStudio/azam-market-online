@@ -119,6 +119,14 @@ function AppInner() {
       const email = session.user.email;
       if (!email) return;
 
+      // Link any stall an admin onboarded for this email to this login. Without the
+      // link, row-level security stops the vendor from adding products.
+      try {
+        await supabase.rpc('claim_my_vendor');
+      } catch (e) {
+        console.warn('claim_my_vendor unavailable', e);
+      }
+
       let vendor = vendorsRef.current.find((v) => v.email.toLowerCase() === email.toLowerCase());
 
       if (!vendor) {
@@ -162,6 +170,7 @@ function AppInner() {
         // A vendor row exists (e.g. onboarded by admin) but isn't linked to
         // an auth account yet — link it now that they've verified this email.
         await supabase.from('vendors').update({ user_id: session.user.id }).eq('id', vendor.id);
+        vendor = { ...vendor, user_id: session.user.id };
       }
 
       if (vendor && isMounted) {
