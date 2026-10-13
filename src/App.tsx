@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Market, Category, SubscriptionTier, Vendor, Product, Catalogue, VendorAnalytics, ShopCustomization } from './types';
 import { supabase } from './lib/supabaseClient';
 import { Navbar } from './components/public/Navbar';
@@ -339,9 +339,30 @@ function AppInner() {
     );
   };
 
-  const fetchAllData = async () => {
+  // A refresh must never wipe what is already on screen: overlapping calls are
+  // merged, the full-screen loader only shows on the very first load, and a
+  // table that fails to load keeps its previous data instead of becoming [].
+  const fetchInFlight = useRef<Promise<void> | null>(null);
+  const hasLoadedOnce = useRef(false);
+  const fetchRerun = useRef(false);
+  const fetchAllData = (): Promise<void> => {
+    if (fetchInFlight.current) {
+      fetchRerun.current = true; // data changed mid-load: reload once more afterwards
+      return fetchInFlight.current;
+    }
+    const run = doFetchAllData().finally(() => {
+      fetchInFlight.current = null;
+      if (fetchRerun.current) {
+        fetchRerun.current = false;
+        fetchAllData();
+      }
+    });
+    fetchInFlight.current = run;
+    return run;
+  };
+  const doFetchAllData = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedOnce.current) setLoading(true);
 
       const [marketsRes, categoriesRes, tiersRes, vendorsRes, productsRes] = await Promise.all([
         supabase.from('markets').select('*').order('name'),
@@ -381,9 +402,14 @@ function AppInner() {
         products: productsByVendor[row.id] ?? [],
       }));
 
-      setMarkets(loadedMarkets);
-      setCategories(loadedCategories);
-      setTiers(loadedTiers);
+      if (vendorsRes.error) {
+        // Keep whatever is on screen; try again on the next refresh.
+        return;
+      }
+      hasLoadedOnce.current = true;
+      if (!marketsRes.error) setMarkets(loadedMarkets);
+      if (!categoriesRes.error) setCategories(loadedCategories);
+      if (!tiersRes.error) setTiers(loadedTiers);
       setVendors(loadedVendors);
 
       const activeCount = loadedVendors.filter((v) => v.status === 'active').length;

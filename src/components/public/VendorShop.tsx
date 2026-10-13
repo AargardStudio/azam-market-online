@@ -149,6 +149,51 @@ export const VendorShop: React.FC<VendorShopProps> = ({
     ? `Verified ${marketName} Stall`
     : (cust.hero_badge_text as string);
 
+  const heroLayout = cust.hero_layout || 'banner_overlay';
+  const heroButtons = (
+    <div className="flex items-center gap-2 flex-wrap">
+      {cust.hero_show_phone && cust.phone_button?.enabled && (
+        <button
+          onClick={handleDirectCall}
+          className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Phone className="w-4 h-4 text-blue-600" />
+          <span>{cust.phone_button.custom_label || 'Call Stall'}</span>
+        </button>
+      )}
+
+      {cust.hero_show_whatsapp && cust.whatsapp_button?.enabled !== false && (
+        <button
+          onClick={() => handleWhatsAppInquiry()}
+          className="bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span>{cust.whatsapp_button?.custom_label || 'WhatsApp Order'}</span>
+        </button>
+      )}
+
+      {cust.hero_show_phone && cust.phone_button?.enabled && (
+        <button
+          onClick={handleSmsInquiry}
+          className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <MessageSquare className="w-4 h-4 text-purple-600" />
+          <span>Send SMS</span>
+        </button>
+      )}
+
+      {cust.hero_show_catalogue_btn && vendor.catalogues && vendor.catalogues.length > 0 && (
+        <button
+          onClick={() => setActiveTab('catalogues')}
+          className="bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/30 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <FileText className="w-4 h-4 text-amber-300" />
+          <span>PDF Catalogues</span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className={`min-h-screen ${bgClass} pb-28 ${fontClass}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-3">
@@ -206,7 +251,53 @@ export const VendorShop: React.FC<VendorShopProps> = ({
       </div>
 
       {/* 3. HERO / COVER BANNER SECTION */}
-      <div className="relative h-60 sm:h-72 lg:h-80 w-full overflow-hidden">
+      {heroLayout === 'clean_minimal' && (
+        <div className="w-full border-b border-gray-200" style={{ backgroundColor: `${primaryColor}0D` }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-3">
+            <span
+              className="text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 border"
+              style={{ backgroundColor: '#FDF6E7', color: accentColor, borderColor: `${accentColor}55` }}
+            >
+              {heroBadge}
+            </span>
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold leading-tight" style={{ color: primaryColor }}>
+              {cust.hero_headline || vendor.shop_name}
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 max-w-2xl">{cust.hero_tagline || vendor.description}</p>
+            {heroButtons}
+          </div>
+        </div>
+      )}
+
+      {heroLayout === 'split_showcase' && (
+        <div className="w-full" style={{ background: `linear-gradient(135deg, ${primaryColor}, #072e1d)` }}>
+          <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-0 md:gap-6 items-stretch">
+            <div className="px-4 sm:px-6 lg:px-8 py-8 md:py-12 text-white space-y-3 flex flex-col justify-center">
+              <span
+                className="self-start text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
+                style={{ backgroundColor: '#FDF6E7', color: accentColor, borderColor: `${accentColor}55` }}
+              >
+                {heroBadge}
+              </span>
+              <h1 className="font-serif text-3xl sm:text-4xl font-bold leading-tight">{cust.hero_headline || vendor.shop_name}</h1>
+              <p className="text-sm text-gray-200 line-clamp-3">{cust.hero_tagline || vendor.description}</p>
+              {heroButtons}
+            </div>
+            <div className="h-56 md:h-auto md:min-h-[18rem] overflow-hidden">
+              {coverUrl && !coverFailed ? (
+                <img src={coverUrl} alt={vendor.shop_name} className="w-full h-full object-cover" onError={() => setCoverFailed(true)} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-black/20">
+                  <span className="font-serif text-white/20 text-5xl font-bold tracking-widest">{marketName.toUpperCase()}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(heroLayout === 'banner_overlay' || heroLayout === 'catalog_spotlight') && (
+      <div className={`relative w-full overflow-hidden ${heroLayout === 'catalog_spotlight' ? 'h-72 sm:h-96 lg:h-[26rem]' : 'h-60 sm:h-72 lg:h-80'}`}>
         {coverUrl && !coverFailed ? (
           <img
             src={coverUrl}
@@ -249,50 +340,23 @@ export const VendorShop: React.FC<VendorShopProps> = ({
             </p>
           </div>
 
-          {/* Hero Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {cust.hero_show_phone && cust.phone_button?.enabled && (
-              <button
-                onClick={handleDirectCall}
-                className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Phone className="w-4 h-4 text-blue-600" />
-                <span>{cust.phone_button.custom_label || 'Call Stall'}</span>
-              </button>
-            )}
-
-            {cust.hero_show_whatsapp && cust.whatsapp_button?.enabled !== false && (
-              <button
-                onClick={() => handleWhatsAppInquiry()}
-                className="bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>{cust.whatsapp_button?.custom_label || 'WhatsApp Order'}</span>
-              </button>
-            )}
-
-            {cust.hero_show_phone && cust.phone_button?.enabled && (
-              <button
-                onClick={handleSmsInquiry}
-                className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4 text-purple-600" />
-                <span>Send SMS</span>
-              </button>
-            )}
-
-            {cust.hero_show_catalogue_btn && vendor.catalogues && vendor.catalogues.length > 0 && (
-              <button
-                onClick={() => setActiveTab('catalogues')}
-                className="bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/30 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <FileText className="w-4 h-4 text-amber-300" />
-                <span>PDF Catalogues</span>
-              </button>
-            )}
-          </div>
+          {heroButtons}
         </div>
       </div>
+      )}
+
+      {heroLayout === 'catalog_spotlight' && vendor.catalogues && vendor.catalogues.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <button
+            onClick={() => setActiveTab('catalogues')}
+            className="w-full min-h-[56px] rounded-2xl text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md cursor-pointer"
+            style={{ backgroundColor: accentColor }}
+          >
+            <FileText className="w-5 h-5" />
+            Browse our {vendor.catalogues.length} PDF Lookbook{vendor.catalogues.length === 1 ? '' : 's'}
+          </button>
+        </div>
+      )}
 
       {/* 4. SHOP PROFILE HEADER CARD */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 mt-4">
