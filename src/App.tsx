@@ -14,6 +14,7 @@ import { HomeSlideshow } from './components/public/HomeSlideshow';
 import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
+import { SeoMetadata } from './components/public/SeoMetadata';
 import { CatalogueViewerModal } from './components/public/CatalogueViewerModal';
 import { VendorSidebar } from './components/vendor/VendorSidebar';
 import { VendorOverview } from './components/vendor/VendorOverview';
@@ -470,16 +471,31 @@ function AppInner() {
   // public nav link — keeps the storefront looking like a plain buyer
   // directory to anyone just browsing it.
   useEffect(() => {
-    const path = window.location.pathname.replace(/\/+$/, '');
-    if (path === '/admin' && !isAdminAuthenticated) {
-      setShowAdminLogin(true);
-    }
-    // Vendor self-registration also lives at its own direct URL rather
-    // than a public nav link that competes with the plain "Vendor Portal"
-    // login button -- reached via the dedicated CTA in the Navbar/Footer.
-    if (path === '/register') {
-      setCurrentView('vendor_register');
-    }
+    const applyPath = () => {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      const shopMatch = path.match(/^\/shops\/([^/]+)$/);
+      if (shopMatch) {
+        setActiveVendorSlug(decodeURIComponent(shopMatch[1]));
+        setCurrentView('vendor_shop');
+        return;
+      }
+      if (path === '/admin' && !isAdminAuthenticated) {
+        setShowAdminLogin(true);
+        return;
+      }
+      // Vendor self-registration also lives at its own direct URL rather
+      // than a public nav link that competes with the plain "Vendor Portal"
+      // login button -- reached via the dedicated CTA in the Navbar/Footer.
+      if (path === '/register') {
+        setCurrentView('vendor_register');
+        return;
+      }
+      setActiveVendorSlug(null);
+      setCurrentView('directory');
+    };
+    applyPath();
+    window.addEventListener('popstate', applyPath);
+    return () => window.removeEventListener('popstate', applyPath);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -696,6 +712,7 @@ function AppInner() {
 
   // Handlers
   const handleOpenVendorShop = (slug: string) => {
+    window.history.pushState({}, '', `/shops/${encodeURIComponent(slug)}`);
     setActiveVendorSlug(slug);
     setCurrentView('vendor_shop');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1143,6 +1160,7 @@ function AppInner() {
       {/* PUBLIC SURFACE (Directory or Single Shop) */}
       {(currentView === 'directory' || currentView === 'vendor_shop') && (
         <>
+          <SeoMetadata vendor={currentView === 'vendor_shop' ? selectedShopVendor : undefined} />
           <Navbar
             markets={markets}
             currentMarket={currentMarket}
@@ -1339,7 +1357,11 @@ function AppInner() {
             selectedShopVendor && (
               <VendorShop
                 vendor={selectedShopVendor}
-                onBackToDirectory={() => setCurrentView('directory')}
+                onBackToDirectory={() => {
+                  window.history.pushState({}, '', '/');
+                  setActiveVendorSlug(null);
+                  setCurrentView('directory');
+                }}
                 onOpenCatalogue={handleOpenCatalogueModal}
                 onLogEvent={logEvent}
               />
