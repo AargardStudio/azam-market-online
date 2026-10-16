@@ -8,8 +8,8 @@ Rule: complete one production task per Pakistan calendar day by default; complet
 | Day | Date | Completed task | Evidence |
 | --- | --- | --- | --- |
 | 1 | 2026-10-09 | Added canonical/social metadata, Organization and WebSite JSON-LD, robots.txt, sitemap.xml and llms.txt. | Commit `ab206ef`; production verified. |
-| 2 | 2026-10-17 | Added stable vendor shop URLs, browser navigation, unique vendor metadata and Store/Product offer structured data. | Pending verification and deployment. |
-| 3 | 2026-10-17 | Replaced the static one-page sitemap with a cached Vercel endpoint populated from active public Supabase vendors. | Pending verification and deployment. |
+| 2 | 2026-10-17 | Added stable vendor shop URLs, browser navigation, unique vendor metadata and Store/Product offer structured data. | Commit `60bf821`; TypeScript/build passed; live vendor route returned 200. |
+| 3 | 2026-10-17 | Replaced the static one-page sitemap with a cached Vercel endpoint populated from active public Supabase vendors. | Commit `e4e0f19`; handler and live XML verified with 6 URLs. |
 
 ## Next priorities
 
