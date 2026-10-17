@@ -22,6 +22,8 @@ interface FooterProps {
   onNavigateView: (view: 'directory' | 'vendor_dashboard' | 'admin_dashboard') => void;
   onNavigateRegister: () => void;
   onOpenCeoMemoir: () => void;
+  onSelectCategory: (slug: string) => void;
+  onSelectMarket: (slug: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -30,6 +32,8 @@ export const Footer: React.FC<FooterProps> = ({
   onNavigateView,
   onNavigateRegister,
   onOpenCeoMemoir,
+  onSelectCategory,
+  onSelectMarket,
 }) => {
   return (
     <footer className="bg-gradient-to-b from-gray-900 via-gray-900 to-black text-gray-300 border-t border-gray-800 mt-16 font-sans">
@@ -88,6 +92,20 @@ export const Footer: React.FC<FooterProps> = ({
               Marketplace Hub
             </h5>
             <ul className="space-y-2 text-xs text-gray-400">
+              {markets.slice(0, 3).map((market) => (
+                <li key={market.id}>
+                  <a
+                    href={`/markets/${encodeURIComponent(market.slug)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      onSelectMarket(market.slug);
+                    }}
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    {market.name} Directory
+                  </a>
+                </li>
+              ))}
               <li>
                 <button
                   onClick={() => onNavigateView('directory')}
@@ -133,13 +151,17 @@ export const Footer: React.FC<FooterProps> = ({
             <ul className="space-y-2 text-xs text-gray-400">
               {categories.slice(0, 5).map(cat => (
                 <li key={cat.id}>
-                  <button
-                    onClick={() => onNavigateView('directory')}
+                  <a
+                    href={`/categories/${encodeURIComponent(cat.slug)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      onSelectCategory(cat.slug);
+                    }}
                     className="hover:text-emerald-400 transition-colors text-left flex items-center justify-between w-full"
                   >
                     <span>{cat.name}</span>
                     <span className="text-[10px] text-gray-600 font-mono">B2B</span>
-                  </button>
+                  </a>
                 </li>
               ))}
               <li>

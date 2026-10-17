@@ -69,9 +69,13 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
 
           if (cat.image_url) {
             return (
-              <button
+              <a
                 key={cat.id}
-                onClick={() => onSelectCategory(isSelected ? null : cat.slug)}
+                href={isSelected ? '/' : `/categories/${encodeURIComponent(cat.slug)}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onSelectCategory(isSelected ? null : cat.slug);
+                }}
                 className={`relative aspect-[3/4] rounded-xl overflow-hidden text-center transition-all cursor-pointer border ${
                   isSelected
                     ? 'border-[#0F5C3A] shadow-md transform -translate-y-0.5 ring-2 ring-[#0F5C3A]'
@@ -103,14 +107,18 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
                     {cat.vendor_count} stalls
                   </span>
                 </div>
-              </button>
+              </a>
             );
           }
 
           return (
-            <button
+            <a
               key={cat.id}
-              onClick={() => onSelectCategory(isSelected ? null : cat.slug)}
+              href={isSelected ? '/' : `/categories/${encodeURIComponent(cat.slug)}`}
+              onClick={(event) => {
+                event.preventDefault();
+                onSelectCategory(isSelected ? null : cat.slug);
+              }}
               className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
                 isSelected
                   ? 'bg-[#0F5C3A] border-[#0F5C3A] text-white shadow-md transform -translate-y-0.5'
@@ -130,7 +138,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
               >
                 {cat.vendor_count} stalls
               </span>
-            </button>
+            </a>
           );
         })}
       </div>

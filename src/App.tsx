@@ -15,6 +15,7 @@ import { FilterBar } from './components/public/FilterBar';
 import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
 import { SeoMetadata } from './components/public/SeoMetadata';
+import { DirectoryLandingIntro } from './components/public/DirectoryLandingIntro';
 import { CatalogueViewerModal } from './components/public/CatalogueViewerModal';
 import { VendorSidebar } from './components/vendor/VendorSidebar';
 import { VendorOverview } from './components/vendor/VendorOverview';
@@ -485,9 +486,23 @@ function AppInner() {
     const applyPath = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       const shopMatch = path.match(/^\/shops\/([^/]+)$/);
+      const categoryMatch = path.match(/^\/categories\/([^/]+)$/);
+      const marketMatch = path.match(/^\/markets\/([^/]+)$/);
       if (shopMatch) {
         setActiveVendorSlug(decodeURIComponent(shopMatch[1]));
         setCurrentView('vendor_shop');
+        return;
+      }
+      if (categoryMatch) {
+        setSelectedCategory(decodeURIComponent(categoryMatch[1]));
+        setCurrentMarket('');
+        setCurrentView('directory');
+        return;
+      }
+      if (marketMatch) {
+        setCurrentMarket(decodeURIComponent(marketMatch[1]));
+        setSelectedCategory(null);
+        setCurrentView('directory');
         return;
       }
       if (path === '/admin' && !isAdminAuthenticated) {
@@ -713,6 +728,13 @@ function AppInner() {
     return 0;
   });
 
+  const selectedCategoryDetails = selectedCategory
+    ? categories.find((category) => category.slug === selectedCategory)
+    : undefined;
+  const selectedMarketDetails = currentMarket
+    ? markets.find((market) => market.slug === currentMarket)
+    : undefined;
+
   // Featured Vendors (Top Slider Row)
   const featuredVendors = activeVendors.filter(v => v.is_featured);
 
@@ -726,6 +748,20 @@ function AppInner() {
     window.history.pushState({}, '', `/shops/${encodeURIComponent(slug)}`);
     setActiveVendorSlug(slug);
     setCurrentView('vendor_shop');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectCategory = (slug: string | null) => {
+    window.history.pushState({}, '', slug ? `/categories/${encodeURIComponent(slug)}` : '/');
+    setSelectedCategory(slug);
+    setCurrentMarket('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectMarket = (slug: string) => {
+    window.history.pushState({}, '', slug ? `/markets/${encodeURIComponent(slug)}` : '/');
+    setCurrentMarket(slug);
+    setSelectedCategory(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1217,11 +1253,16 @@ function AppInner() {
       {/* PUBLIC SURFACE (Directory or Single Shop) */}
       {(currentView === 'directory' || currentView === 'vendor_shop') && (
         <>
-          <SeoMetadata vendor={currentView === 'vendor_shop' ? selectedShopVendor : undefined} />
+          <SeoMetadata
+            vendor={currentView === 'vendor_shop' ? selectedShopVendor : undefined}
+            category={currentView === 'directory' ? selectedCategoryDetails : undefined}
+            market={currentView === 'directory' ? selectedMarketDetails : undefined}
+            resultCount={filteredDirectoryVendors.length}
+          />
           <Navbar
             markets={markets}
             currentMarket={currentMarket}
-            onMarketChange={setCurrentMarket}
+            onMarketChange={handleSelectMarket}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             currentView={currentView}
@@ -1256,17 +1297,23 @@ function AppInner() {
                 totalCataloguesDownloaded={totalCataloguesDownloaded}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                onSelectCategory={(catSlug) => setSelectedCategory(catSlug)}
+                onSelectCategory={handleSelectCategory}
               />
 
               <LivePrices />
 
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <DirectoryLandingIntro
+                  category={selectedCategoryDetails}
+                  market={selectedMarketDetails}
+                  resultCount={filteredDirectoryVendors.length}
+                />
+
                 {/* Category Grid */}
                 <CategoryGrid
                   categories={categories}
                   selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
+                  onSelectCategory={handleSelectCategory}
                   totalStalls={activeVendors.length}
                   singleAllStalls={SINGLE_ALL_STALLS}
                 />
@@ -1279,7 +1326,7 @@ function AppInner() {
                     onSelectVendor={handleOpenVendorShop}
                     onOpenCatalogue={handleOpenCatalogueModal}
                     onLogEvent={logEvent}
-                    onSelectCategory={setSelectedCategory}
+                    onSelectCategory={(slug) => handleSelectCategory(slug)}
                     singleAllStalls={SINGLE_ALL_STALLS}
                     onNavigateRegister={() => {
                       window.history.pushState({}, '', '/register');
@@ -1396,7 +1443,7 @@ function AppInner() {
                       <button
                         onClick={() => {
                           setSearchQuery('');
-                          setSelectedCategory(null);
+                          handleSelectCategory(null);
                           setVerifiedOnly(false);
                           setFeaturedOnly(false);
                           setHasCatalogueOnly(false);
@@ -1432,6 +1479,8 @@ function AppInner() {
           <Footer
             markets={markets}
             categories={categories}
+            onSelectCategory={handleSelectCategory}
+            onSelectMarket={handleSelectMarket}
             onNavigateView={(view) => {
               if (view === 'vendor_dashboard') {
                 setShowVendorLogin(true);

@@ -99,8 +99,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   Select Market Directory
                 </div>
-                <button
-                  onClick={() => {
+                <a
+                  href="/"
+                  onClick={(event) => {
+                    event.preventDefault();
                     onMarketChange('');
                     setShowMarketMenu(false);
                   }}
@@ -110,11 +112,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <span>All Markets</span>
                   <span className="text-[10px] text-gray-400">Pakistan</span>
-                </button>
+                </a>
                 {markets.map(m => (
-                  <button
+                  <a
                     key={m.id}
-                    onClick={() => {
+                    href={`/markets/${encodeURIComponent(m.slug)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
                       onMarketChange(m.slug);
                       setShowMarketMenu(false);
                     }}
@@ -124,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <span>{m.name}</span>
                     <span className="text-[10px] text-gray-400">{m.city}</span>
-                  </button>
+                  </a>
                 ))}
               </div>
             )}

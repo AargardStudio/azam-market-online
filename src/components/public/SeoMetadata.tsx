@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Vendor } from '../../types';
+import { Category, Market, Vendor } from '../../types';
 
 const SITE_URL = 'https://www.azammarketonline.com';
 const DEFAULT_TITLE = 'Azam Market Online | Lahore Wholesale Fabric Directory';
@@ -8,6 +8,9 @@ const DEFAULT_DESCRIPTION =
 
 interface SeoMetadataProps {
   vendor?: Vendor;
+  category?: Category;
+  market?: Market;
+  resultCount?: number;
 }
 
 const setMeta = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
@@ -20,17 +23,31 @@ const setMeta = (selector: string, attribute: 'name' | 'property', key: string, 
   element.content = content;
 };
 
-export function SeoMetadata({ vendor }: SeoMetadataProps) {
+export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMetadataProps) {
   useEffect(() => {
-    const canonicalUrl = vendor ? `${SITE_URL}/shops/${encodeURIComponent(vendor.slug)}` : `${SITE_URL}/`;
-    const market = vendor?.market?.name || 'Azam Cloth Market';
-    const city = vendor?.market?.city || 'Lahore';
+    const canonicalUrl = vendor
+      ? `${SITE_URL}/shops/${encodeURIComponent(vendor.slug)}`
+      : category
+        ? `${SITE_URL}/categories/${encodeURIComponent(category.slug)}`
+        : market
+          ? `${SITE_URL}/markets/${encodeURIComponent(market.slug)}`
+          : `${SITE_URL}/`;
+    const marketName = vendor?.market?.name || market?.name || 'Azam Cloth Market';
+    const city = vendor?.market?.city || market?.city || 'Lahore';
     const title = vendor
       ? `${vendor.shop_name} | Wholesale Fabric Supplier in ${city}`
-      : DEFAULT_TITLE;
+      : category
+        ? `${category.name} Wholesale Suppliers | Azam Market Online`
+        : market
+          ? `${market.name} Wholesale Fabric Directory | ${market.city}`
+          : DEFAULT_TITLE;
     const description = vendor
-      ? `${vendor.description || `${vendor.shop_name} is a wholesale textile supplier in ${market}, ${city}.`} Browse products, catalogues and direct enquiry details.`.slice(0, 160)
-      : DEFAULT_DESCRIPTION;
+      ? `${vendor.description || `${vendor.shop_name} is a wholesale textile supplier in ${marketName}, ${city}.`} Browse products, catalogues and direct enquiry details.`.slice(0, 160)
+      : category
+        ? `Browse ${resultCount} active ${category.name.toLowerCase()} wholesale stall${resultCount === 1 ? '' : 's'} on Azam Market Online. View products, catalogues and direct contact details.`.slice(0, 160)
+        : market
+          ? `Browse ${resultCount} active wholesale fabric stall${resultCount === 1 ? '' : 's'} listed in ${market.name}, ${market.city}. View products, catalogues and contact details.`.slice(0, 160)
+          : DEFAULT_DESCRIPTION;
     const image = vendor?.logo_url || vendor?.cover_url || `${SITE_URL}/logo-full.png`;
 
     document.title = title;
@@ -66,7 +83,7 @@ export function SeoMetadata({ vendor }: SeoMetadataProps) {
         email: vendor.email,
         address: {
           '@type': 'PostalAddress',
-          streetAddress: vendor.shop_address || `${vendor.stall_number}, ${market}`,
+          streetAddress: vendor.shop_address || `${vendor.stall_number}, ${marketName}`,
           addressLocality: city,
           addressCountry: vendor.market?.country || 'PK',
         },
@@ -97,8 +114,27 @@ export function SeoMetadata({ vendor }: SeoMetadataProps) {
       script.type = 'application/ld+json';
       script.text = JSON.stringify(structuredData);
       document.head.appendChild(script);
+    } else if (category || market) {
+      const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        '@id': `${canonicalUrl}#collection`,
+        name: title,
+        description,
+        url: canonicalUrl,
+        numberOfItems: resultCount,
+        about: category
+          ? { '@type': 'Thing', name: category.name }
+          : { '@type': 'Place', name: market?.name, address: { '@type': 'PostalAddress', addressLocality: city, addressCountry: market?.country || 'PK' } },
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+      };
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      document.head.appendChild(script);
     }
-  }, [vendor]);
+  }, [vendor, category, market, resultCount]);
 
   return null;
 }
