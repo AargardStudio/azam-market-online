@@ -64,8 +64,40 @@ export const VendorShop: React.FC<VendorShopProps> = ({
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
-  // Extract customization settings with fallback
-  const cust = vendor.customization || DEFAULT_SHOP_CUSTOMIZATION;
+  // Supabase creates a shop_customizations row with empty JSON objects/arrays
+  // for every new vendor. Merge those partial rows over the storefront defaults;
+  // otherwise an empty `blocks` array makes the whole Overview tab disappear.
+  const savedCustomization = vendor.customization;
+  const cust = savedCustomization
+    ? {
+        ...DEFAULT_SHOP_CUSTOMIZATION,
+        ...savedCustomization,
+        whatsapp_button: {
+          ...DEFAULT_SHOP_CUSTOMIZATION.whatsapp_button,
+          ...(savedCustomization.whatsapp_button || {}),
+        },
+        phone_button: {
+          ...DEFAULT_SHOP_CUSTOMIZATION.phone_button,
+          ...(savedCustomization.phone_button || {}),
+        },
+        product_pricing: {
+          ...DEFAULT_SHOP_CUSTOMIZATION.product_pricing,
+          ...(savedCustomization.product_pricing || {}),
+        },
+        stats_display: {
+          ...DEFAULT_SHOP_CUSTOMIZATION.stats_display,
+          ...(savedCustomization.stats_display || {}),
+        },
+        bank_details: {
+          ...DEFAULT_SHOP_CUSTOMIZATION.bank_details,
+          ...(savedCustomization.bank_details || {}),
+        },
+        blocks:
+          savedCustomization.blocks?.length > 0
+            ? savedCustomization.blocks
+            : DEFAULT_SHOP_CUSTOMIZATION.blocks,
+      }
+    : DEFAULT_SHOP_CUSTOMIZATION;
   const primaryColor = cust.theme_color || '#0F5C3A';
   const accentColor = cust.accent_color || '#C9952A';
 
