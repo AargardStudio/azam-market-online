@@ -565,7 +565,12 @@ export const VendorShop: React.FC<VendorShopProps> = ({
             {/* Left 2 Columns: Configurable Blocks */}
             <div className="lg:col-span-2 space-y-6">
               {cust.blocks
-                .filter((b) => b.enabled)
+                .filter(
+                  (b) =>
+                    b.enabled &&
+                    b.id !== 'bulk_pricing_tiers' &&
+                    b.id !== 'bank_payment_details'
+                )
                 .map((block) => {
                   switch (block.id) {
                     case 'about':

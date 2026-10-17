@@ -200,20 +200,27 @@ export const ALL_AVAILABLE_BLOCKS = [
   { id: 'about', label: 'About Stall & Trade Terms', defaultTitle: 'About Stall & Fabric Specialties' },
   { id: 'fabric_guarantee', label: 'Fabric Guarantee & Testing', defaultTitle: 'Certified Fabric Guarantee & Mill Testing' },
   { id: 'featured_products', label: 'Featured Fabric Samples', defaultTitle: 'Featured Fabric Samples' },
-  { id: 'bulk_pricing_tiers', label: 'Volume Discount Schedules', defaultTitle: 'Volume Discount Schedules & Wholesale Tiers' },
   { id: 'catalogues', label: 'PDF Lookbooks & Swatch Books', defaultTitle: 'PDF Lookbooks & Swatch Books' },
   { id: 'pricing_policy', label: 'Wholesale Trade & Cargo Policy', defaultTitle: 'Wholesale Trade & Pricing Policy' },
   { id: 'stall_location', label: 'Market Stall Map & Visiting Hours', defaultTitle: 'Market Stall Physical Location' },
   { id: 'market_landmark', label: 'Bazaar Gate & Hall Walking Landmark', defaultTitle: 'Bazaar Navigation & Landmark Wayfinding' },
   { id: 'buyer_reviews', label: 'Verified B2B Buyer Reviews', defaultTitle: 'Verified Wholesale Buyer Testimonials' },
   { id: 'faq_accordion', label: 'Buyer Frequently Asked Questions', defaultTitle: 'Frequently Asked Questions (Trade FAQs)' },
-  { id: 'bank_payment_details', label: 'Bank & Mobile Wallet Payment Rails', defaultTitle: 'Wholesale Settlement & Payment Gateways' },
   { id: 'video_showcase', label: 'Stall Video Tour & Weaving Demonstration', defaultTitle: 'Stall Video Tour & Weaving Demonstration' },
   { id: 'contact_cta', label: 'Direct Stall Owner Contact CTA', defaultTitle: 'Direct Wholesale Inquiry' },
 ];
 
-const initialConfigFor = (v: Vendor): ShopCustomization =>
-  v.customization ? { ...DEFAULT_SHOP_CUSTOMIZATION, ...v.customization } : { ...DEFAULT_SHOP_CUSTOMIZATION };
+const initialConfigFor = (v: Vendor): ShopCustomization => {
+  const config = v.customization
+    ? { ...DEFAULT_SHOP_CUSTOMIZATION, ...v.customization }
+    : { ...DEFAULT_SHOP_CUSTOMIZATION };
+  return {
+    ...config,
+    blocks: config.blocks.filter(
+      (block) => block.id !== 'bulk_pricing_tiers' && block.id !== 'bank_payment_details'
+    ),
+  };
+};
 
 // Fields the server stamps on save are ignored when deciding if there are unsaved edits.
 const snapshotOf = (cfg: ShopCustomization): string => {
