@@ -1,5 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
-import { normalizePakistanPhone } from '../../src/lib/phone';
+
+// Keep server-only helpers inside the serverless bundle instead of crossing into
+// the browser source tree, which can make Vercel fail while loading the function.
+const normalizePakistanPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('92')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+92${digits.slice(1)}`;
+  if (digits.length === 10 && digits.startsWith('3')) return `+92${digits}`;
+  return value.trim().startsWith('+') ? `+${digits}` : '';
+};
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
