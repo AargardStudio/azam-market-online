@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Phone, Download, Mail, TrendingUp, Plus, Upload, Palette, MessageSquare, PhoneCall, BarChart3, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Phone, Download, Mail, TrendingUp, Plus, Upload, Palette, MessageSquare, PhoneCall, BarChart3, CheckCircle2, Package, MapPin } from 'lucide-react';
 import { Vendor, VendorAnalytics, ShopCustomization } from '../../types';
 
 interface VendorOverviewProps {
@@ -17,6 +17,8 @@ export const VendorOverview: React.FC<VendorOverviewProps> = ({
 }) => {
   const productCount = vendor.products?.length || 0;
   const catalogueCount = vendor.catalogues?.length || 0;
+  const visibleProducts = (vendor.products || []).filter((product) => product.is_active !== false);
+  const hiddenProductCount = productCount - visibleProducts.length;
   const maxProducts = vendor.tier?.max_products ?? 10;
   const maxCatalogues = vendor.tier?.max_catalogues ?? 1;
 
@@ -86,6 +88,112 @@ export const VendorOverview: React.FC<VendorOverviewProps> = ({
             <span>Upload PDF Lookbook</span>
           </button>
         </div>
+      </div>
+
+      {/* Shop introduction and product snapshot */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-serif text-lg font-bold text-gray-900">Shop Introduction</h2>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('shop')}
+              className="text-xs font-bold text-[#0F5C3A] hover:underline"
+            >
+              Edit introduction →
+            </button>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-[#0F5C3A] text-white flex items-center justify-center font-serif text-xl font-bold">
+              {vendor.logo_url ? (
+                <img src={vendor.logo_url} alt={`${vendor.shop_name} logo`} className="w-full h-full object-cover" />
+              ) : (
+                vendor.shop_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <h3 className="font-bold text-base text-gray-900">{vendor.shop_name}</h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {vendor.description || 'Add a short introduction so wholesale buyers understand your products, specialties, and trading terms.'}
+              </p>
+              <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                <MapPin className="w-3.5 h-3.5 text-[#0F5C3A]" />
+                <span>{vendor.stall_number}{vendor.market?.name ? `, ${vendor.market.name}` : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(vendor.categories || []).length > 0 ? vendor.categories.map((category) => (
+              <span key={category.id} className="bg-emerald-50 text-[#0F5C3A] border border-emerald-200 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                {category.name}
+              </span>
+            )) : (
+              <span className="text-[11px] text-amber-700">No product categories assigned yet.</span>
+            )}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-serif text-lg font-bold text-gray-900">Product Overview</h2>
+              <p className="text-[11px] text-gray-500 mt-0.5">A quick view of your wholesale product catalogue.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('products')}
+              className="text-xs font-bold text-[#0F5C3A] hover:underline"
+            >
+              Manage products →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-3">
+              <Package className="w-4 h-4 text-gray-500 mb-1" />
+              <div className="font-serif text-xl font-bold text-gray-900">{productCount}</div>
+              <div className="text-[10px] text-gray-500">Total</div>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+              <Eye className="w-4 h-4 text-[#0F5C3A] mb-1" />
+              <div className="font-serif text-xl font-bold text-[#0F5C3A]">{visibleProducts.length}</div>
+              <div className="text-[10px] text-emerald-700">Visible</div>
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+              <EyeOff className="w-4 h-4 text-amber-700 mb-1" />
+              <div className="font-serif text-xl font-bold text-amber-800">{hiddenProductCount}</div>
+              <div className="text-[10px] text-amber-700">Hidden</div>
+            </div>
+          </div>
+
+          {vendor.products && vendor.products.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {vendor.products.slice(0, 4).map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => onNavigateTab('products')}
+                  className="text-left rounded-xl border border-gray-200 overflow-hidden hover:border-emerald-300 transition-colors"
+                >
+                  <div className="h-16 bg-gray-100 relative">
+                    {product.image_url ? <img src={product.image_url} alt="" className="w-full h-full object-cover" /> : <Package className="w-5 h-5 text-gray-300 absolute inset-0 m-auto" />}
+                    {product.is_active === false && <span className="absolute top-1 right-1 bg-amber-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Hidden</span>}
+                  </div>
+                  <div className="p-2">
+                    <div className="text-[10px] font-bold text-gray-900 truncate">{product.name}</div>
+                    <div className="text-[9px] text-[#0F5C3A] truncate">{product.price_range}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button type="button" onClick={() => onNavigateTab('products')} className="w-full border border-dashed border-gray-300 rounded-xl p-4 text-xs text-gray-500 hover:border-emerald-300">
+              No products yet — add your first wholesale product.
+            </button>
+          )}
+        </section>
       </div>
 
       {/* 4 Core Engagement Metric Cards: Shop Views, Click to WhatsApp, Click to Message, Click to Call */}
