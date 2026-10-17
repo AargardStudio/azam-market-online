@@ -893,6 +893,29 @@ function AppInner() {
     }
   };
 
+  const handleBulkUpdateProducts = async (productIds: string[], prodData: Partial<Product>) => {
+    if (!activeVendorInDashboard || productIds.length === 0) return;
+    const { error } = await supabase
+      .from('products')
+      .update(prodData)
+      .eq('vendor_id', activeVendorInDashboard.id)
+      .in('id', productIds);
+    if (error) throw error;
+    await reloadVendorProducts(activeVendorInDashboard.id);
+  };
+
+  const handleBulkDeleteProducts = async (productIds: string[]) => {
+    if (!activeVendorInDashboard || productIds.length === 0) return;
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('vendor_id', activeVendorInDashboard.id)
+      .in('id', productIds);
+    if (error) throw error;
+    productIds.forEach((id) => delete productImageCache.current[id]);
+    await reloadVendorProducts(activeVendorInDashboard.id);
+  };
+
   const handleAddCatalogue = async (catData: Partial<Catalogue>) => {
     if (!activeVendorInDashboard) throw new Error('No shop is loaded — refresh the page and try again.');
     try {
@@ -1390,7 +1413,10 @@ function AppInner() {
           ) : (
             selectedShopVendor && (
               <VendorShop
-                vendor={selectedShopVendor}
+                vendor={{
+                  ...selectedShopVendor,
+                  products: selectedShopVendor.products?.filter((product) => product.is_active !== false),
+                }}
                 onBackToDirectory={() => {
                   window.history.pushState({}, '', '/');
                   setActiveVendorSlug(null);
@@ -1526,6 +1552,8 @@ function AppInner() {
                   onAddProduct={handleAddProduct}
                   onUpdateProduct={handleUpdateProduct}
                   onDeleteProduct={handleDeleteProduct}
+                  onBulkUpdateProducts={handleBulkUpdateProducts}
+                  onBulkDeleteProducts={handleBulkDeleteProducts}
                   loadError={productsError}
                 />
               </div>

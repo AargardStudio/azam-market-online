@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, AlertCircle, Upload, X, Camera, Link, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, ShoppingBag, CheckCircle2, AlertCircle, Upload, X, Camera, Link, Sparkles, Loader2, Eye, EyeOff, Share2 } from 'lucide-react';
 import { Product, Vendor } from '../../types';
 import { FABRIC_TYPES } from '../../lib/fabricTypes';
 import { useLanguage } from '../../lib/i18n';
@@ -12,6 +12,8 @@ interface ProductManagerProps {
   onAddProduct: (productData: Partial<Product>) => void | Promise<void>;
   onUpdateProduct: (productId: string, productData: Partial<Product>) => void | Promise<void>;
   onDeleteProduct: (productId: string) => void | Promise<void>;
+  onBulkUpdateProducts: (productIds: string[], productData: Partial<Product>) => void | Promise<void>;
+  onBulkDeleteProducts: (productIds: string[]) => void | Promise<void>;
   /** Problem loading the product list (shown in a red banner). */
   loadError?: string;
 }
@@ -32,6 +34,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onBulkUpdateProducts,
+  onBulkDeleteProducts,
   loadError,
 }) => {
   const [showModal, setShowModal] = useState(false);
@@ -56,6 +60,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [listError, setListError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingUploads, setPendingUploads] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState('');
+  const [visibilityBusyId, setVisibilityBusyId] = useState<string | null>(null);
 
   const maxImages = vendor.tier?.max_images_per_product ?? 5;
   const maxImageSizeMb = vendor.tier?.max_image_size_mb ?? 5;
@@ -217,6 +225,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setDeletingId(p.id);
     try {
       await onDeleteProduct(p.id);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
     } catch (err) {
       setListError(describeError(err, `Could not delete "${p.name}".`));
     } finally {
@@ -227,6 +240,78 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const products = vendor.products || [];
   const maxProducts = vendor.tier?.max_products ?? 10;
   const isAtLimit = maxProducts !== -1 && products.length >= maxProducts;
+  const selectedProducts = products.filter((p) => selectedIds.has(p.id));
+  const allSelected = products.length > 0 && selectedIds.size === products.length;
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const runBulkVisibility = async (isActive: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    setListError('');
+    try {
+      await onBulkUpdateProducts([...selectedIds], { is_active: isActive });
+      setBulkNotice(`${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'} ${isActive ? 'shown' : 'hidden'} successfully.`);
+      setSelectedIds(new Set());
+    } catch (err) {
+      setListError(describeError(err, 'Could not update the selected products.'));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const runBulkDelete = async () => {
+    if (selectedIds.size === 0 || !window.confirm(`Delete ${selectedIds.size} selected product${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    setListError('');
+    try {
+      await onBulkDeleteProducts([...selectedIds]);
+      setBulkNotice('Selected products deleted.');
+      setSelectedIds(new Set());
+    } catch (err) {
+      setListError(describeError(err, 'Could not delete the selected products.'));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const shareSelected = async () => {
+    if (selectedProducts.length === 0) return;
+    const shopUrl = `${window.location.origin}/shops/${encodeURIComponent(vendor.slug)}`;
+    const text = [
+      `${vendor.shop_name} — selected wholesale products`,
+      ...selectedProducts.map((p) => `• ${p.name} | ${p.price_range} | MOQ: ${p.moq}`),
+      shopUrl,
+    ].join('\n');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${vendor.shop_name} products`, text, url: shopUrl });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setBulkNotice('Product details copied. You can paste them into WhatsApp or any other app.');
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') setListError('The selected products could not be shared.');
+    }
+  };
+
+  const toggleVisibility = async (product: Product) => {
+    setVisibilityBusyId(product.id);
+    setListError('');
+    try {
+      await onUpdateProduct(product.id, { is_active: product.is_active === false });
+    } catch (err) {
+      setListError(describeError(err, `Could not ${product.is_active === false ? 'show' : 'hide'} "${product.name}".`));
+    } finally {
+      setVisibilityBusyId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -256,6 +341,38 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
       {loadError && <ErrorBanner title="Could not load products" message={loadError} />}
       {listError && <ErrorBanner title="Action failed" message={listError} onDismiss={() => setListError('')} />}
+      {bulkNotice && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <span>{bulkNotice}</span>
+          <button type="button" onClick={() => setBulkNotice('')} aria-label="Dismiss notification" className="font-bold">✕</button>
+        </div>
+      )}
+
+      {products.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-2 text-xs shadow-2xs">
+          <label className="inline-flex items-center gap-2 font-bold text-gray-700 mr-auto cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => setSelectedIds(allSelected ? new Set() : new Set(products.map((p) => p.id)))}
+              className="w-4 h-4 rounded border-gray-300 text-[#0F5C3A]"
+            />
+            {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all products'}
+          </label>
+          <button type="button" disabled={bulkBusy || selectedIds.size === 0} onClick={() => runBulkVisibility(true)} className="px-3 py-2 rounded-lg border border-emerald-200 text-emerald-700 font-bold disabled:opacity-40 inline-flex items-center gap-1">
+            <Eye className="w-3.5 h-3.5" /> Show
+          </button>
+          <button type="button" disabled={bulkBusy || selectedIds.size === 0} onClick={() => runBulkVisibility(false)} className="px-3 py-2 rounded-lg border border-amber-200 text-amber-700 font-bold disabled:opacity-40 inline-flex items-center gap-1">
+            <EyeOff className="w-3.5 h-3.5" /> Hide
+          </button>
+          <button type="button" disabled={bulkBusy || selectedIds.size === 0} onClick={shareSelected} className="px-3 py-2 rounded-lg border border-blue-200 text-blue-700 font-bold disabled:opacity-40 inline-flex items-center gap-1">
+            <Share2 className="w-3.5 h-3.5" /> Share
+          </button>
+          <button type="button" disabled={bulkBusy || selectedIds.size === 0} onClick={runBulkDelete} className="px-3 py-2 rounded-lg border border-red-200 text-red-700 font-bold disabled:opacity-40 inline-flex items-center gap-1">
+            {bulkBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
+          </button>
+        </div>
+      )}
 
       {isAtLimit && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs text-amber-900 flex items-center justify-between">
@@ -272,9 +389,12 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           {products.map((p) => (
             <div
               key={p.id}
-              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs flex flex-col justify-between"
+              className={`bg-white rounded-2xl border overflow-hidden shadow-2xs flex flex-col justify-between ${selectedIds.has(p.id) ? 'border-[#0F5C3A] ring-2 ring-emerald-100' : 'border-gray-200'} ${p.is_active === false ? 'opacity-70' : ''}`}
             >
               <div className="h-44 bg-gray-100 relative">
+                <label className="absolute top-2 right-2 z-10 bg-white/95 rounded-lg p-2 shadow cursor-pointer" title="Select product">
+                  <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelected(p.id)} className="w-4 h-4 rounded border-gray-300 text-[#0F5C3A]" />
+                </label>
                 <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                 <span className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
                   {p.fabric_type}
@@ -283,6 +403,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Camera className="w-3 h-3" />
                     {p.image_urls.length}
+                  </span>
+                )}
+                {p.is_active === false && (
+                  <span className="absolute bottom-2 left-2 bg-amber-600 text-white text-[10px] font-bold px-2 py-1 rounded-md inline-flex items-center gap-1">
+                    <EyeOff className="w-3 h-3" /> Hidden
                   </span>
                 )}
               </div>
@@ -306,7 +431,17 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
                 <div className="pt-2 flex items-center justify-end gap-2 text-xs">
                   <button
+                    onClick={() => toggleVisibility(p)}
+                    disabled={visibilityBusyId === p.id}
+                    title={p.is_active === false ? 'Show product' : 'Hide product'}
+                    aria-label={p.is_active === false ? `Show ${p.name}` : `Hide ${p.name}`}
+                    className={`p-1.5 rounded-lg border disabled:opacity-50 ${p.is_active === false ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}`}
+                  >
+                    {visibilityBusyId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : p.is_active === false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
                     onClick={() => openEditModal(p)}
+                    aria-label={`Edit ${p.name}`}
                     className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
@@ -315,6 +450,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   <button
                     onClick={() => handleDelete(p)}
                     disabled={deletingId === p.id}
+                    aria-label={`Delete ${p.name}`}
                     className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
                     {deletingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
