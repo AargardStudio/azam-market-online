@@ -1518,14 +1518,17 @@ function AppInner() {
               </div>
             )}
 
-            {vendorDashboardTab === 'products' && (
-              <ProductManager
-                vendor={activeVendorInDashboard}
-                onAddProduct={handleAddProduct}
-                onUpdateProduct={handleUpdateProduct}
-                onDeleteProduct={handleDeleteProduct}
-                loadError={productsError}
-              />
+            {(visitedTabs.has('products') || vendorDashboardTab === 'products') && (
+              <div className={vendorDashboardTab === 'products' ? '' : 'hidden'}>
+                <ProductManager
+                  key={`products-${activeVendorInDashboard.id}`}
+                  vendor={activeVendorInDashboard}
+                  onAddProduct={handleAddProduct}
+                  onUpdateProduct={handleUpdateProduct}
+                  onDeleteProduct={handleDeleteProduct}
+                  loadError={productsError}
+                />
+              </div>
             )}
 
             {vendorDashboardTab === 'catalogues' && (
