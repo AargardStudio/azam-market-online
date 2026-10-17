@@ -25,6 +25,7 @@ export const ContactBar: React.FC<ContactBarProps> = ({ vendor, onLogEvent }) =>
   };
 
   const handleEmail = () => {
+    if (!vendor.email) return;
     onLogEvent(vendor.id, 'message_click');
     onLogEvent(vendor.id, 'email_click');
     const subject = encodeURIComponent(`Azam Market Inquiry for ${vendor.shop_name}`);
@@ -73,13 +74,15 @@ export const ContactBar: React.FC<ContactBarProps> = ({ vendor, onLogEvent }) =>
         {/* Right Action Buttons */}
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           {/* Email Button */}
-          <button
-            onClick={handleEmail}
-            className="hidden md:flex bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-gray-300 items-center justify-center gap-2 transition-colors cursor-pointer"
-          >
-            <Mail className="w-4 h-4 text-gray-600" />
-            <span>Email</span>
-          </button>
+          {vendor.email && (
+            <button
+              onClick={handleEmail}
+              className="hidden md:flex bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-gray-300 items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Mail className="w-4 h-4 text-gray-600" />
+              <span>Email</span>
+            </button>
+          )}
 
           {/* Attached Phone Call Button (if enabled) */}
           {cust.phone_button?.enabled && cust.phone_button?.show_in_sticky_bar !== false && (

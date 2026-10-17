@@ -128,7 +128,7 @@ function AppInner() {
         console.warn('claim_my_vendor unavailable', e);
       }
 
-      let vendor = vendorsRef.current.find((v) => v.email.toLowerCase() === email.toLowerCase());
+      let vendor = vendorsRef.current.find((v) => v.email?.toLowerCase() === email.toLowerCase());
 
       if (!vendor) {
         const { data: existing } = await supabase
@@ -213,6 +213,7 @@ function AppInner() {
 
   const hydrateVendor = (row: any): Vendor => ({
     ...row,
+    email: row.email || '',
     products: row.products || [],
     categories: (row.vendor_categories || [])
       .map((vc: any) => vc.category)
@@ -920,7 +921,6 @@ function AppInner() {
     const defaultMarketId = vendorData.market_id || markets[0]?.id;
     if (!defaultMarketId) throw new Error('Choose a market for this stall (no markets are loaded).');
     if (!vendorData.shop_name?.trim()) throw new Error('Shop name is required.');
-    if (!vendorData.email?.trim()) throw new Error('Email is required.');
     if ((categoryIds?.length ?? 0) > 3) throw new Error('A stall can have at most 3 categories.');
 
     try {
@@ -930,6 +930,7 @@ function AppInner() {
           tier_id: 't-standard',
           status: 'active', // admin-onboarded stalls go live immediately (RLS allows this for admins)
           ...columns,
+          email: vendorData.email?.trim() || null,
           market_id: defaultMarketId,
           slug: vendorData.slug || slugify(vendorData.shop_name || 'stall'),
         })

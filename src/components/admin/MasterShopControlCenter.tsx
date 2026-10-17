@@ -195,7 +195,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
         const matchName = v.shop_name.toLowerCase().includes(q);
         const matchStall = v.stall_number.toLowerCase().includes(q);
         const matchPhone = v.whatsapp.includes(q) || (v.customization?.phone_button?.phone_number || '').includes(q);
-        const matchEmail = v.email.toLowerCase().includes(q);
+        const matchEmail = (v.email || '').toLowerCase().includes(q);
         const matchCat = v.categories?.some(c => c.name.toLowerCase().includes(q));
         const matchProd = v.products?.some(p => p.name.toLowerCase().includes(q) || p.fabric_type.toLowerCase().includes(q));
         return matchName || matchStall || matchPhone || matchEmail || matchCat || matchProd;
@@ -848,7 +848,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           <MessageCircle className="w-3 h-3 text-[#25D366]" />
                           <span>{vendor.whatsapp}</span>
                         </div>
-                        <div className="text-[10px] text-gray-400">{vendor.email}</div>
+                        <div className="text-[10px] text-gray-400">{vendor.email || 'No email'}</div>
                       </td>
 
                       <td className="p-3">

@@ -43,7 +43,7 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
         market_id: marketId,
         tier_id: tierId,
         whatsapp,
-        email,
+        email: email.trim() || null,
         description: description || `Verified wholesale fabric vendor in ${markets.find(m=>m.id===marketId)?.name || 'Azam Cloth Market'}.`,
         is_verified: isVerified,
         status: 'active',
@@ -187,16 +187,18 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
 
           <div>
             <label className="font-bold text-gray-700 block mb-1">
-              Vendor Email <span className="text-red-500">*</span>
+              Vendor Email <span className="font-normal text-gray-400">(optional)</span>
             </label>
             <input
               type="email"
-              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vendor@gmail.com"
+              placeholder="Leave blank if the owner has no email"
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
             />
+            <p className="text-[10px] text-gray-400 mt-1">
+              An owner can add an email later to claim and manage the stall.
+            </p>
           </div>
         </div>
 

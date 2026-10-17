@@ -53,7 +53,7 @@ export const PendingQueue: React.FC<PendingQueueProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-3.5 h-3.5 text-emerald-700" />
-                  <span><strong>Email:</strong> {v.email}</span>
+                  <span><strong>Email:</strong> {v.email || 'Not provided'}</span>
                 </div>
                 <p className="text-gray-500 text-[11px] pt-1">{v.description}</p>
               </div>

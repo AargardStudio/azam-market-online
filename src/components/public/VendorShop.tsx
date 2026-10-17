@@ -93,6 +93,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
   };
 
   const handleMessageInquiry = () => {
+    if (!vendor.email) return;
     onLogEvent(vendor.id, 'message_click');
     onLogEvent(vendor.id, 'email_click');
     const subject = encodeURIComponent(`Azam Market Inquiry: ${vendor.shop_name}`);
@@ -1255,7 +1256,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                   )}
 
                   {/* Email */}
-                  <div className="flex items-start gap-3">
+                  {vendor.email && <div className="flex items-start gap-3">
                     <Mail className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                     <div>
                       <span className="text-gray-400 block text-[10px] uppercase font-bold">
@@ -1268,7 +1269,7 @@ export const VendorShop: React.FC<VendorShopProps> = ({
                         {vendor.email}
                       </a>
                     </div>
-                  </div>
+                  </div>}
 
                   {vendor.website && (
                     <div className="flex items-start gap-3">

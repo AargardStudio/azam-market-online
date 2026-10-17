@@ -32,7 +32,7 @@ export const VendorTable: React.FC<VendorTableProps> = ({
         v.shop_name.toLowerCase().includes(q) ||
         v.stall_number.toLowerCase().includes(q) ||
         v.whatsapp.includes(q) ||
-        v.email.toLowerCase().includes(q)
+        (v.email || '').toLowerCase().includes(q)
       );
     }
     return true;
@@ -119,7 +119,7 @@ export const VendorTable: React.FC<VendorTableProps> = ({
             </div>
             <div className="text-xs text-gray-700">
               <div className="font-bold">{v.whatsapp}</div>
-              <div className="text-gray-400 truncate">{v.email}</div>
+              <div className="text-gray-400 truncate">{v.email || 'No email'}</div>
               <div className="text-[11px] text-gray-400 mt-0.5">{v.products?.length || 0} Products • {v.catalogues?.length || 0} Lookbooks</div>
             </div>
             <select
@@ -196,7 +196,7 @@ export const VendorTable: React.FC<VendorTableProps> = ({
 
                 <td className="p-3">
                   <div className="text-gray-900 font-bold">{v.whatsapp}</div>
-                  <div className="text-[10px] text-gray-400">{v.email}</div>
+                  <div className="text-[10px] text-gray-400">{v.email || 'No email'}</div>
                 </td>
 
                 <td className="p-3">
