@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, ArrowRight, CheckCircle2, Loader2, Store, LogIn } from 'lucide-react';
+import { Mail, Phone, Lock, ArrowRight, CheckCircle2, Loader2, Store, LogIn } from 'lucide-react';
 import { Vendor } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
+import { normalizePakistanPhone } from '../../lib/phone';
 
 interface VendorLoginProps {
   /** Only used for the DEV-only quick-login shortcut below — never shown in production. */
@@ -19,6 +20,9 @@ export const VendorLogin: React.FC<VendorLoginProps> = ({
   onCancel,
 }) => {
   const [email, setEmail] = useState('');
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [sentMagicLink, setSentMagicLink] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,6 +47,29 @@ export const VendorLogin: React.FC<VendorLoginProps> = ({
     }
   };
 
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const normalizedPhone = normalizePakistanPhone(phone);
+    if (!normalizedPhone) {
+      setError('Enter a valid Pakistani mobile number, for example +92 300 1234567.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        phone: normalizedPhone,
+        password,
+      });
+      if (loginError) throw loginError;
+      onCancel();
+    } catch (err: any) {
+      setError(err?.message || 'Phone number or password is incorrect.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
@@ -57,10 +84,29 @@ export const VendorLogin: React.FC<VendorLoginProps> = ({
           </h2>
           {!sentMagicLink && (
             <p className="text-xs text-gray-500">
-              Enter your stall owner email to receive a secure login link.
+              Sign in with your mobile number and password, or use an email login link.
             </p>
           )}
         </div>
+
+        {!sentMagicLink && (
+          <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => { setLoginMethod('phone'); setError(''); }}
+              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 ${loginMethod === 'phone' ? 'bg-white text-[#0F5C3A] shadow-xs' : 'text-gray-500'}`}
+            >
+              <Phone className="w-3.5 h-3.5" /> Phone + Password
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod('email'); setError(''); }}
+              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 ${loginMethod === 'email' ? 'bg-white text-[#0F5C3A] shadow-xs' : 'text-gray-500'}`}
+            >
+              <Mail className="w-3.5 h-3.5" /> Email Link
+            </button>
+          </div>
+        )}
 
         {!sentMagicLink && (
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-bold">
@@ -105,23 +151,39 @@ export const VendorLogin: React.FC<VendorLoginProps> = ({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSendMagicLink} className="space-y-4 text-xs">
-            <div>
-              <label className="font-bold text-gray-700 block mb-1">
-                Stall Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  placeholder="razasilk.azam@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]"
-                />
+          <form onSubmit={loginMethod === 'phone' ? handlePhoneLogin : handleSendMagicLink} className="space-y-4 text-xs">
+            {loginMethod === 'phone' ? (
+              <>
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Mobile Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="tel" required autoComplete="username" placeholder="+92 300 1234567" value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="password" required minLength={8} autoComplete="current-password" placeholder="Your password" value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="font-bold text-gray-700 block mb-1">Stall Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="email" required placeholder="vendor@gmail.com" value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* DEV-ONLY shortcut: never rendered in a production build. Lets you
                 test the vendor dashboard locally without waiting on a real email. */}
@@ -162,7 +224,7 @@ export const VendorLogin: React.FC<VendorLoginProps> = ({
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>Send Magic Link</span>
+                    <span>{loginMethod === 'phone' ? 'Sign In' : 'Send Magic Link'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

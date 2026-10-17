@@ -23,6 +23,7 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
   const [tierId, setTierId] = useState(tiers[1]?.id || 't-standard');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [description, setDescription] = useState('');
   const [isVerified, setIsVerified] = useState(true);
   const [selectedCatIds, setSelectedCatIds] = useState<string[]>([categories[0]?.id || 'c-silk']);
@@ -44,6 +45,7 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
         tier_id: tierId,
         whatsapp,
         email: email.trim() || null,
+        login_password: loginPassword,
         description: description || `Verified wholesale fabric vendor in ${markets.find(m=>m.id===marketId)?.name || 'Azam Cloth Market'}.`,
         is_verified: isVerified,
         status: 'active',
@@ -56,6 +58,7 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
       setStallNumber('');
       setWhatsapp('');
       setEmail('');
+      setLoginPassword('');
       setDescription('');
       setTimeout(() => setSuccessMsg(false), 4000);
     } catch (err) {
@@ -198,6 +201,25 @@ export const OnboardForm: React.FC<OnboardFormProps> = ({
             />
             <p className="text-[10px] text-gray-400 mt-1">
               An owner can add an email later to claim and manage the stall.
+            </p>
+          </div>
+
+          <div>
+            <label className="font-bold text-gray-700 block mb-1">
+              Phone Login Password <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">
+              The WhatsApp number above becomes the vendor's login username.
             </p>
           </div>
         </div>

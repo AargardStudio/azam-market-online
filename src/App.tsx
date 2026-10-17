@@ -116,30 +116,40 @@ function AppInner() {
         return;
       }
 
-      // Otherwise treat this as a vendor magic-link sign-in.
+      // Phone/password accounts are linked at creation time. Resolve by
+      // user_id first; email magic-link accounts can still claim by email.
       const email = session.user.email;
-      if (!email) return;
-
-      // Link any stall an admin onboarded for this email to this login. Without the
-      // link, row-level security stops the vendor from adding products.
-      try {
-        await supabase.rpc('claim_my_vendor');
-      } catch (e) {
-        console.warn('claim_my_vendor unavailable', e);
-      }
-
-      let vendor = vendorsRef.current.find((v) => v.email?.toLowerCase() === email.toLowerCase());
-
+      let vendor = vendorsRef.current.find((v) => v.user_id === session.user.id);
       if (!vendor) {
-        const { data: existing } = await supabase
+        const { data: linked } = await supabase
           .from('vendors')
           .select('*')
-          .eq('email', email)
+          .eq('user_id', session.user.id)
           .maybeSingle();
-        vendor = existing ?? undefined;
+        vendor = linked ?? undefined;
       }
 
-      if (!vendor) {
+      if (!vendor && email) {
+        // Link any stall an admin onboarded for this email to this login.
+        try {
+          await supabase.rpc('claim_my_vendor');
+        } catch (e) {
+          console.warn('claim_my_vendor unavailable', e);
+        }
+
+        vendor = vendorsRef.current.find((v) => v.email?.toLowerCase() === email.toLowerCase());
+
+        if (!vendor) {
+          const { data: existing } = await supabase
+            .from('vendors')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+          vendor = existing ?? undefined;
+        }
+      }
+
+      if (!vendor && email) {
         // First time this email has signed in: create a pending stall for
         // them to fill in, tied to their auth account.
         const { data: market } = await supabase
@@ -167,7 +177,7 @@ function AppInner() {
         if (!createError) {
           vendor = created ?? undefined;
         }
-      } else if (!vendor.user_id) {
+      } else if (vendor && !vendor.user_id) {
         // A vendor row exists (e.g. onboarded by admin) but isn't linked to
         // an auth account yet — link it now that they've verified this email.
         await supabase.from('vendors').update({ user_id: session.user.id }).eq('id', vendor.id);
@@ -917,13 +927,21 @@ function AppInner() {
 
   const handleOnboardVendor = async (vendorData: Partial<Vendor>) => {
     // category_ids is not a column on `vendors`; it goes to the vendor_categories join table.
-    const { category_ids: categoryIds, ...columns } = vendorData as Partial<Vendor> & { category_ids?: string[] };
+    const { category_ids: categoryIds, login_password: loginPassword, ...columns } = vendorData as Partial<Vendor> & {
+      category_ids?: string[];
+      login_password?: string;
+    };
     const defaultMarketId = vendorData.market_id || markets[0]?.id;
     if (!defaultMarketId) throw new Error('Choose a market for this stall (no markets are loaded).');
     if (!vendorData.shop_name?.trim()) throw new Error('Shop name is required.');
+    if (!loginPassword || loginPassword.length < 8) throw new Error('Phone login password must contain at least 8 characters.');
     if ((categoryIds?.length ?? 0) > 3) throw new Error('A stall can have at most 3 categories.');
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error('Your admin session expired. Sign in again and retry.');
+
       const { data: created, error } = await supabase
         .from('vendors')
         .insert({
@@ -937,6 +955,21 @@ function AppInner() {
         .select('id')
         .single();
       if (error) throw error;
+
+      try {
+        const authResponse = await fetch('/api/admin/create-vendor-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ vendorId: created.id, phone: vendorData.whatsapp, password: loginPassword }),
+        });
+        if (!authResponse.ok) {
+          const body = await authResponse.json().catch(() => ({}));
+          throw new Error(body.error || 'Could not create the vendor phone login.');
+        }
+      } catch (authError) {
+        await supabase.from('vendors').delete().eq('id', created.id);
+        throw authError;
+      }
 
       if (categoryIds && categoryIds.length > 0) {
         const { error: catErr } = await supabase
