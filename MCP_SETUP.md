@@ -36,4 +36,9 @@ Treat the URL like a password. To rotate it, change `AMO_MCP_SECRET` in Vercel a
 
 ## Tools
 Code: `list_files`, `read_file`, `search_code`, `edit_file`, `write_file`, `delete_file`, `changes_status`, `deploy`, `discard_changes`.
-Data: `list_vendors`, `get_vendor`, `update_vendor`, `extend_trial`, `platform_stats`, `run_sql`.
+Shops: `create_shop` (optionally with owner login), `approve_vendor`, `suspend_vendor`, `delete_vendor`, `create_vendor_login`, `update_vendor`, `extend_trial`, `customize_shop` (colours, hero layout, headline, announcement, FAQs…), `list_vendors`, `get_vendor`.
+Products: `list_products`, `add_product`, `update_product`, `delete_product`.
+Platform: `add_category`, `add_market`, `update_tier`, `platform_stats`, `run_sql`.
+
+Homepage sections (Live Prices, Services collage, footer text, etc.) are part of the code, so changing them goes through
+`edit_file` → `changes_status` → `deploy`.

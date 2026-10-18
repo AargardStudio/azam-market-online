@@ -178,6 +178,55 @@ async function findVendor(sb: any, ref: string) {
   return data[0];
 }
 
+
+const slugify = (x: string) =>
+  `${x.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}-${Date.now().toString(36)}`;
+
+const normalizePakistanPhone = (value: string): string => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('92')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+92${digits.slice(1)}`;
+  if (digits.length === 10 && digits.startsWith('3')) return `+92${digits}`;
+  return String(value).trim().startsWith('+') ? `+${digits}` : '';
+};
+
+async function findMarket(sb: any, ref: string) {
+  const { data, error } = await sb.from('markets').select('id,name,city,slug').or(`slug.eq.${ref},name.ilike.%${ref.replace(/[,()]/g, ' ')}%`);
+  if (error) throw new ToolError(error.message);
+  if (!data?.length) throw new ToolError(`No market matches "${ref}". Add it first with add_market.`);
+  if (data.length > 1) throw new ToolError(`"${ref}" matches several markets: ${data.map((m: any) => m.name).join('; ')}. Be more specific.`);
+  return data[0];
+}
+
+async function createLogin(sb: any, vendor: { id: string; shop_name: string }, phoneRaw: string, password: string) {
+  const phone = normalizePakistanPhone(phoneRaw);
+  if (!phone) throw new ToolError('A valid Pakistani mobile number is required for the login.');
+  if (!password || password.length < 8) throw new ToolError('Password must contain at least 8 characters.');
+  const { data: created, error } = await sb.auth.admin.createUser({
+    phone,
+    password,
+    phone_confirm: true,
+    user_metadata: { vendor_id: vendor.id, shop_name: vendor.shop_name },
+  });
+  if (error || !created?.user) throw new ToolError(error?.message || 'Could not create the login.');
+  const { error: linkErr } = await sb.from('vendors').update({ user_id: created.user.id, phone }).eq('id', vendor.id);
+  if (linkErr) {
+    await sb.auth.admin.deleteUser(created.user.id);
+    throw new ToolError(`Login was not linked to the shop: ${linkErr.message}`);
+  }
+  return phone;
+}
+
+const CUSTOMIZATION_FIELDS = [
+  'is_published', 'theme_color', 'accent_color', 'background_tone', 'font_style', 'header_layout',
+  'show_announcement', 'announcement_text', 'show_market_badge', 'logo_shape', 'hero_layout',
+  'hero_headline', 'hero_tagline', 'hero_badge_text', 'hero_show_whatsapp', 'hero_show_phone',
+  'hero_show_catalogue_btn', 'show_stats', 'whatsapp_button', 'phone_button', 'faqs', 'blocks',
+];
+const PRODUCT_FIELDS = ['name', 'description', 'fabric_type', 'price_range', 'moq', 'image_url', 'is_active', 'sort_order'];
+const TIER_FIELDS = ['display_name', 'price_usd', 'price_pkr', 'max_products', 'max_catalogues', 'is_available', 'has_verified_badge', 'has_featured_placement', 'has_analytics'];
+
 // ---------------------------------------------------------------- tools
 
 type Tool = {
@@ -455,6 +504,258 @@ const tools: Tool[] = [
     },
   },
   {
+    name: 'create_shop',
+    description:
+      'Create a new stall and put it live immediately. Optionally creates its phone login (shop owner signs in with their mobile number + the password you set). Up to 3 categories by name.',
+    inputSchema: obj(
+      {
+        shop_name: str('Shop name'),
+        stall_number: str('Stall / location, e.g. "Shop 14, Raja Bazar"'),
+        market: str('Market name or slug, e.g. "Raja Bazar"'),
+        whatsapp: str('WhatsApp number, e.g. 03001234567'),
+        email: str('Owner email (optional)'),
+        description: str('Short bio (optional)'),
+        categories: { type: 'array', items: { type: 'string' }, description: 'Up to 3 category names' },
+        tier_id: str('Default t-standard'),
+        is_verified: { type: 'boolean' },
+        login_password: str('If given (8+ chars), creates the owner login using the WhatsApp number as phone'),
+      },
+      ['shop_name', 'stall_number', 'market', 'whatsapp']
+    ),
+    annotations: WRITE,
+    run: async (a) => {
+      const sb = supabaseAdmin();
+      if (!String(a.shop_name || '').trim()) throw new ToolError('shop_name is required.');
+      const market = await findMarket(sb, a.market);
+      let catIds: string[] = [];
+      if (a.categories?.length) {
+        if (a.categories.length > 3) throw new ToolError('A stall can have at most 3 categories.');
+        const { data: cats } = await sb.from('categories').select('id,name');
+        for (const name of a.categories) {
+          const c = (cats || []).find((x: any) => x.name.toLowerCase() === String(name).toLowerCase());
+          if (!c) throw new ToolError(`Unknown category "${name}". Known: ${(cats || []).map((x: any) => x.name).join(', ')}. Use add_category first.`);
+          catIds.push(c.id);
+        }
+      }
+      const { data: v, error } = await sb
+        .from('vendors')
+        .insert({
+          shop_name: a.shop_name.trim(),
+          stall_number: a.stall_number,
+          market_id: market.id,
+          whatsapp: a.whatsapp,
+          email: a.email?.trim() || null,
+          description: a.description || `Verified wholesale vendor in ${market.name}.`,
+          tier_id: a.tier_id || 't-standard',
+          is_verified: a.is_verified ?? true,
+          status: 'active',
+          slug: slugify(a.shop_name),
+        })
+        .select('id,shop_name,slug')
+        .single();
+      if (error) throw new ToolError(error.message);
+      const notes: string[] = [];
+      if (catIds.length) {
+        const { error: ce } = await sb.from('vendor_categories').insert(catIds.map((category_id) => ({ vendor_id: v.id, category_id })));
+        if (ce) notes.push(`Categories not saved: ${ce.message}`);
+      }
+      if (a.login_password) {
+        try {
+          const phone = await createLogin(sb, v, a.whatsapp, a.login_password);
+          notes.push(`Owner login created: ${phone}`);
+        } catch (e: any) {
+          await sb.from('vendors').delete().eq('id', v.id);
+          throw new ToolError(`Shop was NOT created: ${e.message}`);
+        }
+      }
+      return text({ created: v, market: market.name, notes });
+    },
+  },
+  {
+    name: 'approve_vendor',
+    description: 'Approve a pending stall (sets it active so it appears in the directory). Use list_vendors with status "pending" to see who is waiting.',
+    inputSchema: obj({ vendor: str('id, slug, email or shop name') }, ['vendor']),
+    annotations: WRITE,
+    run: async ({ vendor }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      const { error } = await sb.from('vendors').update({ status: 'active' }).eq('id', v.id);
+      if (error) throw new ToolError(error.message);
+      return text(`${v.shop_name} is now active (was ${v.status}).`);
+    },
+  },
+  {
+    name: 'suspend_vendor',
+    description: 'Suspend a stall (hides it from the directory but keeps all its data). Reverse with approve_vendor.',
+    inputSchema: obj({ vendor: str('id, slug, email or shop name') }, ['vendor']),
+    annotations: WRITE,
+    run: async ({ vendor }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      const { error } = await sb.from('vendors').update({ status: 'suspended' }).eq('id', v.id);
+      if (error) throw new ToolError(error.message);
+      return text(`${v.shop_name} is now suspended.`);
+    },
+  },
+  {
+    name: 'delete_vendor',
+    description: 'PERMANENTLY delete a stall and its products/catalogues. Cannot be undone. confirm_shop_name must exactly equal the shop name.',
+    inputSchema: obj({ vendor: str('id, slug, email or shop name'), confirm_shop_name: str('Exact shop name, as confirmation') }, ['vendor', 'confirm_shop_name']),
+    annotations: DANGER,
+    run: async ({ vendor, confirm_shop_name }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      if (String(confirm_shop_name).trim() !== String(v.shop_name).trim()) throw new ToolError(`Confirmation does not match. The shop name is exactly "${v.shop_name}".`);
+      const { error } = await sb.from('vendors').delete().eq('id', v.id);
+      if (error) throw new ToolError(error.message);
+      return text(`Deleted ${v.shop_name}.`);
+    },
+  },
+  {
+    name: 'create_vendor_login',
+    description: 'Create a phone + password login for a stall that has none (owner then signs in with that mobile number).',
+    inputSchema: obj({ vendor: str('id, slug, email or shop name'), phone: str('Owner mobile, e.g. 03001234567'), password: str('8+ characters') }, ['vendor', 'phone', 'password']),
+    annotations: WRITE,
+    run: async ({ vendor, phone, password }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      if (v.user_id) throw new ToolError(`${v.shop_name} already has a login.`);
+      const p = await createLogin(sb, v, phone, password);
+      return text(`Login created for ${v.shop_name}: ${p}`);
+    },
+  },
+  {
+    name: 'customize_shop',
+    description: `Change how a stall's public page looks and reads. Fields: ${CUSTOMIZATION_FIELDS.join(', ')}. Examples: {"theme_color":"#1E3A8A","accent_color":"#0284C7"}, {"hero_layout":"split_showcase"} (banner_overlay | split_showcase | clean_minimal | catalog_spotlight), {"hero_headline":"Premium Shawls"}, {"announcement_text":"Eid sale"}.`,
+    inputSchema: obj({ vendor: str('id, slug, email or shop name'), fields: { type: 'object', description: 'Field/value pairs' } }, ['vendor', 'fields']),
+    annotations: WRITE,
+    run: async ({ vendor, fields }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      const patch: any = {};
+      for (const [k, val] of Object.entries(fields || {})) {
+        if (!CUSTOMIZATION_FIELDS.includes(k)) throw new ToolError(`Field "${k}" is not allowed. Allowed: ${CUSTOMIZATION_FIELDS.join(', ')}`);
+        patch[k] = val;
+      }
+      if (!Object.keys(patch).length) throw new ToolError('No fields given.');
+      patch.last_saved_at = new Date().toISOString();
+      const upd = await sb.from('shop_customizations').update(patch).eq('vendor_id', v.id).select('vendor_id');
+      if (upd.error) throw new ToolError(upd.error.message);
+      if (!upd.data?.length) {
+        const ins = await sb.from('shop_customizations').insert({ ...patch, vendor_id: v.id });
+        if (ins.error) throw new ToolError(ins.error.message);
+      }
+      return text(`Updated ${v.shop_name}'s page: ${Object.keys(patch).filter((k) => k !== 'last_saved_at').join(', ')}.`);
+    },
+  },
+  {
+    name: 'list_products',
+    description: 'List a stall\'s products (without photos).',
+    inputSchema: obj({ vendor: str('id, slug, email or shop name') }, ['vendor']),
+    annotations: READ,
+    run: async ({ vendor }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      const { data, error } = await sb.from('products').select('id,name,fabric_type,price_range,moq,is_active,sort_order,description').eq('vendor_id', v.id).order('sort_order');
+      if (error) throw new ToolError(error.message);
+      return text({ shop: v.shop_name, products: data });
+    },
+  },
+  {
+    name: 'add_product',
+    description: 'Add a product to a stall. Photos: give a public image URL in image_url (uploading photo files is not possible from chat; the owner can add photos in their dashboard).',
+    inputSchema: obj(
+      { vendor: str('id, slug, email or shop name'), name: str('Product name'), fabric_type: str('e.g. Khaddar'), price_range: str('e.g. Rs 3000'), moq: str('Minimum order'), description: str('Description'), image_url: str('Public image URL (optional)') },
+      ['vendor', 'name']
+    ),
+    annotations: WRITE,
+    run: async ({ vendor, image_url, ...rest }) => {
+      const sb = supabaseAdmin();
+      const v = await findVendor(sb, vendor);
+      const row: any = { vendor_id: v.id, name: rest.name };
+      for (const k of ['fabric_type', 'price_range', 'moq', 'description']) if (rest[k] !== undefined) row[k] = rest[k];
+      if (image_url) { row.image_url = image_url; row.image_urls = [image_url]; }
+      const { data, error } = await sb.from('products').insert(row).select('id,name').single();
+      if (error) throw new ToolError(error.message);
+      return text(`Added "${data.name}" to ${v.shop_name} (id ${data.id}).`);
+    },
+  },
+  {
+    name: 'update_product',
+    description: `Edit a product. Fields: ${PRODUCT_FIELDS.join(', ')}.`,
+    inputSchema: obj({ product_id: str('Product id from list_products'), fields: { type: 'object' } }, ['product_id', 'fields']),
+    annotations: WRITE,
+    run: async ({ product_id, fields }) => {
+      const sb = supabaseAdmin();
+      const patch: any = {};
+      for (const [k, val] of Object.entries(fields || {})) {
+        if (!PRODUCT_FIELDS.includes(k)) throw new ToolError(`Field "${k}" is not allowed. Allowed: ${PRODUCT_FIELDS.join(', ')}`);
+        patch[k] = val;
+      }
+      if (patch.image_url) patch.image_urls = [patch.image_url];
+      const { data, error } = await sb.from('products').update(patch).eq('id', product_id).select('id,name');
+      if (error) throw new ToolError(error.message);
+      if (!data?.length) throw new ToolError('No product with that id.');
+      return text(`Updated "${data[0].name}".`);
+    },
+  },
+  {
+    name: 'delete_product',
+    description: 'Delete a product permanently.',
+    inputSchema: obj({ product_id: str('Product id from list_products') }, ['product_id']),
+    annotations: DANGER,
+    run: async ({ product_id }) => {
+      const sb = supabaseAdmin();
+      const { data, error } = await sb.from('products').delete().eq('id', product_id).select('name');
+      if (error) throw new ToolError(error.message);
+      if (!data?.length) throw new ToolError('No product with that id.');
+      return text(`Deleted "${data[0].name}".`);
+    },
+  },
+  {
+    name: 'add_category',
+    description: 'Add a fabric category.',
+    inputSchema: obj({ name: str('Category name'), icon: str('Emoji icon, default 🧵') }, ['name']),
+    annotations: WRITE,
+    run: async ({ name, icon }) => {
+      const sb = supabaseAdmin();
+      const { data: m } = await sb.from('markets').select('id').order('created_at').limit(1);
+      const { error } = await sb.from('categories').insert({ name: name.trim(), icon: icon || '🧵', slug: slugify(name), market_id: m?.[0]?.id ?? null });
+      if (error) throw new ToolError(error.message);
+      return text(`Category "${name}" added.`);
+    },
+  },
+  {
+    name: 'add_market',
+    description: 'Add a wholesale market (e.g. Hall Road, Lahore).',
+    inputSchema: obj({ name: str('Market name'), city: str('City') }, ['name', 'city']),
+    annotations: WRITE,
+    run: async ({ name, city }) => {
+      const sb = supabaseAdmin();
+      const { error } = await sb.from('markets').insert({ name: name.trim(), city: city.trim(), slug: slugify(name), country: 'Pakistan' });
+      if (error) throw new ToolError(error.message);
+      return text(`Market "${name}" (${city}) added.`);
+    },
+  },
+  {
+    name: 'update_tier',
+    description: `Change a subscription tier (id such as t-standard / t-premium). Fields: ${TIER_FIELDS.join(', ')}. E.g. {"is_available":true} to open Premium, {"price_usd":7}.`,
+    inputSchema: obj({ tier_id: str('Tier id'), fields: { type: 'object' } }, ['tier_id', 'fields']),
+    annotations: WRITE,
+    run: async ({ tier_id, fields }) => {
+      const sb = supabaseAdmin();
+      const patch: any = {};
+      for (const [k, val] of Object.entries(fields || {})) {
+        if (!TIER_FIELDS.includes(k)) throw new ToolError(`Field "${k}" is not allowed. Allowed: ${TIER_FIELDS.join(', ')}`);
+        patch[k] = val;
+      }
+      const { data, error } = await sb.from('subscription_tiers').update(patch).eq('id', tier_id).select('id,display_name,price_usd,is_available');
+      if (error) throw new ToolError(error.message);
+      if (!data?.length) throw new ToolError('No tier with that id.');
+      return text({ updated: data[0] });
+    },
+  },
+  {
     name: 'run_sql',
     description:
       'Run SQL on the production database. By default read-only (SELECT). To change data or schema, set allow_write=true - double-check the statement first; there is no undo. Requires SUPABASE_ACCESS_TOKEN on the server.',
@@ -497,7 +798,7 @@ async function handleRpc(msg: any): Promise<any | null> {
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'amo-control', version: '1.0.0' },
         instructions:
-          'Controls Azam Market Online. For code changes: edit_file/write_file (saved to a work branch), then changes_status, then deploy. Database: vendor tools or run_sql. Never deploy without telling the user what changed.',
+          'Controls Azam Market Online. Shops, approvals, products, page looks, categories, markets and tiers have their own tools (data changes are immediate). For code/layout changes: edit_file/write_file (saved to a work branch), then changes_status, then deploy. Database: vendor tools or run_sql. Never deploy without telling the user what changed.',
       });
     }
     case 'ping':
