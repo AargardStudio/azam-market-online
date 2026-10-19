@@ -16,6 +16,7 @@ import { VendorCard } from './components/public/VendorCard';
 import { VendorShop } from './components/public/VendorShop';
 import { SeoMetadata } from './components/public/SeoMetadata';
 import { DirectoryLandingIntro } from './components/public/DirectoryLandingIntro';
+import { PublicFaq } from './components/public/PublicFaq';
 import { CatalogueViewerModal } from './components/public/CatalogueViewerModal';
 import { VendorSidebar } from './components/vendor/VendorSidebar';
 import { VendorOverview } from './components/vendor/VendorOverview';
@@ -1455,6 +1456,8 @@ function AppInner() {
                     </div>
                   )}
                 </div>
+
+                {!searchQuery && <PublicFaq />}
               </div>
             </main>
           ) : (

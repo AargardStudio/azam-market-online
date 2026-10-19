@@ -11,12 +11,12 @@ Rule: complete one production task per Pakistan calendar day by default; complet
 | 2 | 2026-10-17 | Added stable vendor shop URLs, browser navigation, unique vendor metadata and Store/Product offer structured data. | Commit `60bf821`; TypeScript/build passed; live vendor route returned 200. |
 | 3 | 2026-10-17 | Replaced the static one-page sitemap with a cached Vercel endpoint populated from active public Supabase vendors. | Commit `e4e0f19`; handler and live XML verified with 6 URLs. |
 | 4 | 2026-10-18 | Added crawlable category and market landing URLs with answer-first copy, unique metadata, CollectionPage schema and sitemap discovery. | TypeScript/build passed; sitemap handler verified 9 category, 4 market and 8 shop URLs. |
+| 5 | 2026-10-19 | Added visible buyer FAQs to public directory pages with matching FAQPage structured data. | TypeScript/build and structured-data validation passed; production verification pending. |
 
 ## Next priorities
 
-1. Add visible FAQ content with matching FAQ structured data where eligible.
-2. Improve image alt text, dimensions, lazy loading and social-card assets.
-3. Establish Search Console and Bing/IndexNow measurement baselines.
+1. Improve image alt text, dimensions, lazy loading and social-card assets.
+2. Establish Search Console and Bing/IndexNow measurement baselines.
 
 ## Operating constraints
 

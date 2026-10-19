@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Category, Market, Vendor } from '../../types';
+import { PUBLIC_FAQS } from '../../lib/publicFaq';
 
 const SITE_URL = 'https://www.azammarketonline.com';
 const DEFAULT_TITLE = 'Azam Market Online | Lahore Wholesale Fabric Directory';
@@ -68,7 +69,7 @@ export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMe
     setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image);
 
-    const scriptId = 'vendor-structured-data';
+    const scriptId = 'public-page-structured-data';
     document.getElementById(scriptId)?.remove();
     if (vendor) {
       const structuredData = {
@@ -114,9 +115,17 @@ export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMe
       script.type = 'application/ld+json';
       script.text = JSON.stringify(structuredData);
       document.head.appendChild(script);
-    } else if (category || market) {
-      const structuredData = {
-        '@context': 'https://schema.org',
+    } else {
+      const faqStructuredData = {
+        '@type': 'FAQPage',
+        '@id': `${canonicalUrl}#faq`,
+        mainEntity: PUBLIC_FAQS.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      };
+      const pageStructuredData = category || market ? {
         '@type': 'CollectionPage',
         '@id': `${canonicalUrl}#collection`,
         name: title,
@@ -127,6 +136,17 @@ export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMe
           ? { '@type': 'Thing', name: category.name }
           : { '@type': 'Place', name: market?.name, address: { '@type': 'PostalAddress', addressLocality: city, addressCountry: market?.country || 'PK' } },
         isPartOf: { '@id': `${SITE_URL}/#website` },
+      } : {
+        '@type': 'WebPage',
+        '@id': `${canonicalUrl}#webpage`,
+        name: title,
+        description,
+        url: canonicalUrl,
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+      };
+      const structuredData = {
+        '@context': 'https://schema.org',
+        '@graph': [pageStructuredData, faqStructuredData],
       };
       const script = document.createElement('script');
       script.id = scriptId;
