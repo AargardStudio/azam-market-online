@@ -13,6 +13,7 @@ Baseline date: 2026-10-21 (Asia/Karachi)
 
 - Ownership key file: `/6f25027a5841130bcc6b9d9ea73073fc.txt`
 - Submission scope: every canonical URL currently published in `sitemap.xml`.
+- Initial submission: 22 URLs accepted with HTTP 202 on 2026-10-21; key validation was pending at receipt.
 - A successful IndexNow response records receipt only; it does not guarantee crawling or indexing.
 
 ## Search-platform baseline
