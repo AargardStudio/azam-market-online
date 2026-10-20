@@ -13,10 +13,11 @@ Rule: complete one production task per Pakistan calendar day by default; complet
 | 4 | 2026-10-18 | Added crawlable category and market landing URLs with answer-first copy, unique metadata, CollectionPage schema and sitemap discovery. | TypeScript/build passed; sitemap handler verified 9 category, 4 market and 8 shop URLs. |
 | 5 | 2026-10-19 | Added visible buyer FAQs to public directory pages with matching FAQPage structured data. | Commit `4f1f075`; TypeScript/build passed; live page verified with 5 visible answers and 5 matching schema entities. |
 | 6 | 2026-10-20 | Improved public image alt text, intrinsic dimensions, loading priorities and social-card metadata. | Commit `facf969`; TypeScript/build passed; live page verified with complete image dimensions, 41 lazy-loaded images and updated social metadata. |
+| 7 | 2026-10-21 | Established a public crawl baseline and enabled IndexNow ownership verification for all canonical sitemap URLs. | TypeScript/build and live verification pending. Search Console metrics require restored GSC Wizard access. |
 
 ## Next priorities
 
-1. Establish Search Console and Bing/IndexNow measurement baselines.
+1. Restore verified Search Console/Bing access and record the first platform-reported indexing and performance baseline.
 
 ## Operating constraints
 
