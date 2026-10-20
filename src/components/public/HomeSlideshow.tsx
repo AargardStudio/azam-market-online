@@ -59,8 +59,12 @@ export const HomeSlideshow: React.FC<HomeSlideshowProps> = ({ slides, intervalMs
             <img
               src={slide.image}
               alt={slide.title}
+              width={1680}
+              height={640}
               className="w-full h-full object-cover"
               loading={i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+              decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 text-white">

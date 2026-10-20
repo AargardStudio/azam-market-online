@@ -50,6 +50,10 @@ export const Footer: React.FC<FooterProps> = ({
               <img
                 src="/icon-192.png"
                 alt="Azam Market Online"
+                width={192}
+                height={192}
+                loading="lazy"
+                decoding="async"
                 className="w-10 h-10 rounded-2xl border border-emerald-500/30 shadow-lg"
               />
               <div>

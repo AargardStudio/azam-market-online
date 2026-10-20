@@ -6,6 +6,7 @@ const SITE_URL = 'https://www.azammarketonline.com';
 const DEFAULT_TITLE = 'Azam Market Online | Lahore Wholesale Fabric Directory';
 const DEFAULT_DESCRIPTION =
   'Find wholesale fabric suppliers, verified stalls, products and catalogues from Azam Cloth Market and other textile markets in Lahore, Pakistan.';
+const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/hero-banner.jpg`;
 
 interface SeoMetadataProps {
   vendor?: Vendor;
@@ -49,7 +50,10 @@ export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMe
         : market
           ? `Browse ${resultCount} active wholesale fabric stall${resultCount === 1 ? '' : 's'} listed in ${market.name}, ${market.city}. View products, catalogues and contact details.`.slice(0, 160)
           : DEFAULT_DESCRIPTION;
-    const image = vendor?.logo_url || vendor?.cover_url || `${SITE_URL}/logo-full.png`;
+    const image = vendor?.logo_url || vendor?.cover_url || DEFAULT_SOCIAL_IMAGE;
+    const imageAlt = vendor
+      ? `${vendor.shop_name} wholesale fabric stall in ${marketName}, ${city}`
+      : 'Azam Market Online wholesale fabric directory in Lahore';
 
     document.title = title;
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
@@ -65,9 +69,21 @@ export function SeoMetadata({ vendor, category, market, resultCount = 0 }: SeoMe
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMeta('meta[property="og:image"]', 'property', 'og:image', image);
+    setMeta('meta[property="og:image:alt"]', 'property', 'og:image:alt', imageAlt);
     setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
     setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image);
+    setMeta('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', imageAlt);
+
+    const defaultImageMetadata = [
+      ['meta[property="og:image:width"]', 'og:image:width', '1920'],
+      ['meta[property="og:image:height"]', 'og:image:height', '1080'],
+      ['meta[property="og:image:type"]', 'og:image:type', 'image/jpeg'],
+    ] as const;
+    defaultImageMetadata.forEach(([selector, key, content]) => {
+      if (image === DEFAULT_SOCIAL_IMAGE) setMeta(selector, 'property', key, content);
+      else document.head.querySelector(selector)?.remove();
+    });
 
     const scriptId = 'public-page-structured-data';
     document.getElementById(scriptId)?.remove();

@@ -1220,6 +1220,9 @@ function AppInner() {
         <img
           src="/icon-192.png"
           alt="Azam Market Online"
+          width={192}
+          height={192}
+          decoding="async"
           className="w-14 h-14 rounded-2xl animate-bounce shadow-lg"
         />
         <div className="mt-4 font-serif text-lg font-bold text-gray-900">

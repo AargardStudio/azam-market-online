@@ -84,9 +84,12 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
               >
                 <img
                   src={cat.image_url}
-                  alt={name}
+                  alt={`${name} wholesale fabric category`}
+                  width={320}
+                  height={420}
                   className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div
                   className="absolute inset-0"

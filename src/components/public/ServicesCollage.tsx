@@ -81,8 +81,11 @@ export const ServicesCollage: React.FC = () => (
         >
           <img
             src={t.image}
-            alt=""
+            alt={`${t.title} for wholesale fabric buyers`}
+            width={640}
+            height={360}
             loading="lazy"
+            decoding="async"
             style={{ objectPosition: t.position }}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             onError={(e) => {

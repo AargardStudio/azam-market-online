@@ -71,6 +71,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <img
               src="/icon-192.png"
               alt="Azam Market Online"
+              width={192}
+              height={192}
+              decoding="async"
               className="w-10 h-10 rounded-xl shadow-sm group-hover:opacity-90 transition-opacity"
             />
             <div>

@@ -81,7 +81,11 @@ export const CategoryShopRows: React.FC<CategoryShopRowsProps> = ({
                 {cat.image_url ? (
                   <img
                     src={cat.image_url}
-                    alt={name}
+                    alt={`${name} wholesale fabric category`}
+                    width={64}
+                    height={64}
+                    loading="lazy"
+                    decoding="async"
                     className="w-8 h-8 rounded-lg object-cover border border-gray-200"
                   />
                 ) : (

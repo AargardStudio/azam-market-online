@@ -23,7 +23,12 @@ export const VendorHero: React.FC<VendorHeroProps> = ({
       {/* Banner photograph */}
       <img
         src="/hero-banner.jpg"
-        alt="Azam Market Online"
+        alt="Azam Market Online wholesale fabric directory in Lahore"
+        width={1920}
+        height={1080}
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-cover object-[75%_center]"
       />
       {/* Gradient overlay: neutral dark tint on the left where the text and

@@ -60,7 +60,11 @@ export const VendorCard: React.FC<VendorCardProps> = ({
         {vendor.cover_url ? (
           <img
             src={vendor.cover_url}
-            alt={vendor.shop_name}
+            alt={`${vendor.shop_name} wholesale fabric stall cover`}
+            width={640}
+            height={256}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
@@ -101,7 +105,15 @@ export const VendorCard: React.FC<VendorCardProps> = ({
           {/* Logo or Initials */}
           <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0 -mt-7 relative z-10">
             {vendor.logo_url ? (
-              <img src={vendor.logo_url} alt={vendor.shop_name} className="w-full h-full object-cover" />
+              <img
+                src={vendor.logo_url}
+                alt={`${vendor.shop_name} logo`}
+                width={96}
+                height={96}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full bg-[#0F5C3A] text-white font-bold text-sm flex items-center justify-center font-serif">
                 {initials}
