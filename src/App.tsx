@@ -28,6 +28,7 @@ import { VendorAnalytics as VendorAnalyticsComponent } from './components/vendor
 import { SubscriptionUsage } from './components/vendor/SubscriptionUsage';
 import { AdminSidebar } from './components/admin/AdminSidebar';
 import { AdminOverview } from './components/admin/AdminOverview';
+import { ApiIntegrationsCenter } from './components/admin/ApiIntegrationsCenter';
 import { VendorTable } from './components/admin/VendorTable';
 import { OnboardForm } from './components/admin/OnboardForm';
 import { PendingQueue } from './components/admin/PendingQueue';
@@ -65,7 +66,7 @@ function AppInner() {
   const [vendorAnalytics, setVendorAnalytics] = useState<VendorAnalytics | null>(null);
 
   // Admin Portal State
-  const [adminTab, setAdminTab] = useState<'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets'>('master_control');
+  const [adminTab, setAdminTab] = useState<'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'connect'>('master_control');
 
   // Directory Filters State
   // Show the complete directory by default. Visitors can narrow the list to a
@@ -1729,6 +1730,8 @@ function AppInner() {
                 onAddCategory={handleAddCategory}
               />
             )}
+
+            {adminTab === 'connect' && <ApiIntegrationsCenter />}
 
             {adminTab === 'markets' && (
               <MarketManager

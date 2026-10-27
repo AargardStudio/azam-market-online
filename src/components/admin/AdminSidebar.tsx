@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, UserPlus, Clock, Tag, Map, ArrowLeft, Sliders, CreditCard, MoreHorizontal, X } from 'lucide-react';
+import { Plug, LayoutDashboard, Users, UserPlus, Clock, Tag, Map, ArrowLeft, Sliders, CreditCard, MoreHorizontal, X } from 'lucide-react';
 
 interface AdminSidebarProps {
   pendingCount: number;
-  activeTab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets';
-  onSelectTab: (tab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets') => void;
+  activeTab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'connect';
+  onSelectTab: (tab: 'overview' | 'master_control' | 'vendors' | 'onboard' | 'pending' | 'subscriptions' | 'categories' | 'markets' | 'connect') => void;
   onExitToDirectory: () => void;
 }
 
@@ -27,6 +27,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: 'subscriptions', label: 'Subscription Tiers', Icon: CreditCard },
     { id: 'categories', label: 'Categories Config', Icon: Tag },
     { id: 'markets', label: 'Markets Expansion', Icon: Map },
+    { id: 'connect', label: 'API & Integrations', Icon: Plug },
   ];
   const moreActive = more.some((m) => m.id === activeTab);
   return (
@@ -233,6 +234,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           >
             <Map className="w-4 h-4" />
             <span>Markets Expansion</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('connect')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'connect'
+                ? 'bg-[#C9952A] text-gray-900 font-bold shadow-md'
+                : 'text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            <Plug className="w-4 h-4" />
+            <span>API &amp; Integrations</span>
           </button>
 
         </nav>

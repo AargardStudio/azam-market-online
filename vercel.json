@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/connect/v1/:path*",
+      "destination": "/api/connect?path=:path*"
+    },
+    {
       "source": "/mcp/:key",
       "destination": "/api/mcp?key=:key"
     },
@@ -13,6 +17,12 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/connect-cron",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
