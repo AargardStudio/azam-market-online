@@ -32,6 +32,7 @@ export interface SubscriptionTier {
   max_images_per_product: number;
   max_image_size_mb: number;
   max_catalogue_size_mb: number;
+  max_storage_mb: number; // total vendor allowance across PDFs and uploaded images
   has_analytics: boolean;
   has_verified_badge: boolean;
   has_featured_placement: boolean;
@@ -311,6 +312,7 @@ export interface Vendor {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   is_subscription_exempt: boolean; // complimentary account -- never asked to pay
+  storage_limit_override_mb?: number | null; // admin-assigned allowance; null uses tier limit
 }
 
 // CNIC (Pakistan national ID) + NTN (tax number). Kept off the main Vendor

@@ -32,7 +32,7 @@ export const VENDOR_FIELDS = [
   'tier_id', 'is_verified', 'is_featured', 'is_subscription_exempt',
 ];
 export const PRODUCT_FIELDS = ['name', 'description', 'fabric_type', 'price_range', 'moq', 'image_url', 'is_active', 'sort_order'];
-export const TIER_FIELDS = ['display_name', 'price_usd', 'price_pkr', 'max_products', 'max_catalogues', 'is_available', 'has_verified_badge', 'has_featured_placement', 'has_analytics'];
+export const TIER_FIELDS = ['display_name', 'price_pkr', 'max_products', 'max_catalogues', 'max_images_per_product', 'max_image_size_mb', 'max_catalogue_size_mb', 'max_storage_mb', 'is_available', 'has_verified_badge', 'has_featured_placement', 'has_analytics'];
 
 export const BACKOFF_SECONDS = [60, 300, 1800, 7200, 43200]; // then give up (6 attempts total)
 

@@ -1074,7 +1074,7 @@ function AppInner() {
   };
 
   // Sends the vendor to Stripe's hosted checkout for their tier's monthly
-  // price (Standard $5/mo, Premium $20/mo) via a per-tier Stripe Payment
+  // price via a per-tier Stripe Payment
   // Link -- a static URL created once in the Stripe Dashboard, so no
   // backend call and no STRIPE_SECRET_KEY are needed just to start
   // checkout. Each tier's link can be set two ways: a stripe_payment_link

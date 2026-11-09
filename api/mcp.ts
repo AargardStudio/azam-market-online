@@ -225,7 +225,7 @@ const CUSTOMIZATION_FIELDS = [
   'hero_show_catalogue_btn', 'show_stats', 'whatsapp_button', 'phone_button', 'faqs', 'blocks',
 ];
 const PRODUCT_FIELDS = ['name', 'description', 'fabric_type', 'price_range', 'moq', 'image_url', 'is_active', 'sort_order'];
-const TIER_FIELDS = ['display_name', 'price_usd', 'price_pkr', 'max_products', 'max_catalogues', 'is_available', 'has_verified_badge', 'has_featured_placement', 'has_analytics'];
+const TIER_FIELDS = ['display_name', 'price_pkr', 'max_products', 'max_catalogues', 'max_images_per_product', 'max_image_size_mb', 'max_catalogue_size_mb', 'max_storage_mb', 'is_available', 'has_verified_badge', 'has_featured_placement', 'has_analytics'];
 
 // ---------------------------------------------------------------- tools
 

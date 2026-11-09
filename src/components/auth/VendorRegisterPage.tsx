@@ -64,7 +64,7 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
   // vendors know it exists.
   const sortedTiers = [...tiers]
     .filter((t) => t.is_available)
-    .sort((a, b) => a.price_usd - b.price_usd);
+    .sort((a, b) => a.price_pkr - b.price_pkr);
   const effectiveTierId = tierId || sortedTiers.find((t) => t.is_available)?.id || sortedTiers[0]?.id || 't-standard';
   const effectiveMarketId = marketId;
 
@@ -445,9 +445,9 @@ export const VendorRegisterPage: React.FC<VendorRegisterPageProps> = ({
                       {tier.has_verified_badge && <Award className="w-3.5 h-3.5 text-[#C9952A]" />}
                     </div>
                     <p className="text-sm font-bold text-[#0F5C3A] mt-1">
-                      {tier.price_usd > 0 ? `$${tier.price_usd.toLocaleString()}/mo` : 'Free'}
+                      {tier.price_pkr > 0 ? `Rs. ${tier.price_pkr.toLocaleString()}/mo` : 'Free'}
                     </p>
-                    {tier.price_usd > 0 && (
+                    {tier.price_pkr > 0 && (
                       <span className="inline-block mt-1 bg-emerald-100 text-[#0F5C3A] text-[10px] font-bold px-2 py-0.5 rounded-full">
                         30 days free
                       </span>

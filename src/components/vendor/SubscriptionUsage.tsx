@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Check, Sparkles, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { ShieldCheck, Check, Sparkles, Clock, AlertTriangle, Database, Package, FileText, Images } from 'lucide-react';
 import { Vendor, SubscriptionTier } from '../../types';
 
 interface SubscriptionUsageProps {
@@ -12,11 +12,9 @@ interface SubscriptionUsageProps {
 export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
   vendor,
   tiers,
-  onSubscribe,
-  subscribeLoading,
 }) => {
   const tier = vendor.tier;
-  const isFreeTier = !tier || tier.price_usd <= 0;
+  const isFreeTier = !tier || tier.price_pkr <= 0;
   const isExempt = vendor.is_subscription_exempt;
 
   const isActive = vendor.subscription_status === 'active';
@@ -29,6 +27,28 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
   const isTrialing = vendor.subscription_status === 'trialing';
   const trialExpired = isTrialing && daysLeft <= 0;
   const isLive = isExempt || isActive || isFreeTier || (isTrialing && !trialExpired);
+  const storageLimitMb = vendor.storage_limit_override_mb ?? tier?.max_storage_mb ?? 1024;
+  const catalogueStorageMb = React.useMemo(
+    () => (vendor.catalogues || []).reduce(
+      (sum, catalogue) => sum + Number(catalogue.file_size_mb || 0),
+      0,
+    ),
+    [vendor.catalogues],
+  );
+  const imageStorageMb = React.useMemo(
+    () => (vendor.products || []).reduce((sum, product) => {
+      const images = product.image_urls?.length ? product.image_urls : product.image_url ? [product.image_url] : [];
+      return sum + images.reduce((imageSum, image) => {
+        if (!image.startsWith('data:image/') || !image.includes(',')) return imageSum;
+        return imageSum + (image.split(',', 2)[1].length * 3) / 4 / 1024 / 1024;
+      }, 0);
+    }, 0),
+    [vendor.products],
+  );
+  const storageUsedMb = catalogueStorageMb + imageStorageMb;
+  const storagePercent = Math.min(100, (storageUsedMb / storageLimitMb) * 100);
+  const productCount = vendor.products?.length || 0;
+  const catalogueCount = vendor.catalogues?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -39,11 +59,11 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
         <h2 className="font-serif text-2xl font-bold text-gray-900">Subscription</h2>
         <p className="text-xs text-gray-500">
           {(() => {
-            const availablePaid = tiers.filter((t) => t.is_available && t.price_usd > 0);
+            const availablePaid = tiers.filter((t) => t.is_available && t.price_pkr > 0);
             const parts = availablePaid.map((t, i) => (
               <React.Fragment key={t.id}>
                 {i > 0 ? ' and ' : ''}
-                <strong className="text-gray-900">{t.display_name} (${t.price_usd}/mo)</strong>
+                <strong className="text-gray-900">{t.display_name} (Rs. {t.price_pkr.toLocaleString()}/mo)</strong>
               </React.Fragment>
             ));
             return (
@@ -53,6 +73,48 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
             );
           })()}
         </p>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold text-[#C9952A] uppercase tracking-wider">Allowance</span>
+            <h3 className="font-serif text-xl font-bold text-gray-900">Vendor storage & access</h3>
+          </div>
+          <Database className="w-6 h-6 text-[#0F5C3A]" />
+        </div>
+        <div>
+          <div className="flex justify-between text-xs font-semibold text-gray-700 mb-2">
+            <span>{storageUsedMb.toFixed(1)} MB used</span>
+            <span>{storageLimitMb.toLocaleString()} MB assigned</span>
+          </div>
+          <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${storagePercent >= 90 ? 'bg-red-500' : storagePercent >= 75 ? 'bg-amber-500' : 'bg-[#0F5C3A]'}`}
+              style={{ width: `${storagePercent}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">
+            Includes catalogue PDFs and product images. Linked external images do not consume assigned storage.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+            <Package className="w-4 h-4 text-[#0F5C3A] mb-2" />
+            <div className="font-bold text-gray-900">{productCount} / {tier?.max_products === -1 ? '∞' : tier?.max_products ?? 10}</div>
+            <div className="text-[11px] text-gray-500">Products</div>
+          </div>
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+            <FileText className="w-4 h-4 text-[#C9952A] mb-2" />
+            <div className="font-bold text-gray-900">{catalogueCount} / {tier?.max_catalogues === -1 ? '∞' : tier?.max_catalogues ?? 5}</div>
+            <div className="text-[11px] text-gray-500">PDF catalogues</div>
+          </div>
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+            <Images className="w-4 h-4 text-indigo-600 mb-2" />
+            <div className="font-bold text-gray-900">{tier?.max_images_per_product ?? 5}</div>
+            <div className="text-[11px] text-gray-500">Images per product</div>
+          </div>
+        </div>
       </div>
 
       {/* Complimentary / exempt account: never asked to pay, ever. */}
@@ -147,7 +209,7 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
           </div>
 
           <div className="font-serif text-4xl font-bold text-gray-900">
-            ${tier?.price_usd ?? 5} <span className="text-sm font-normal text-gray-500">/ month</span>
+            Rs. {(tier?.price_pkr ?? 1500).toLocaleString()} <span className="text-sm font-normal text-gray-500">/ month</span>
           </div>
 
           <ul className="space-y-2 text-xs text-gray-700 pt-2 border-t border-gray-100">
@@ -175,6 +237,10 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
               <Check className="w-4 h-4 text-[#0F5C3A]" />
               <span>WhatsApp, call & SMS inquiries{tier?.has_analytics ? ' with analytics' : ''}</span>
             </li>
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-[#0F5C3A]" />
+              <span>{storageLimitMb.toLocaleString()} MB total assigned storage</span>
+            </li>
             {tier?.has_verified_badge && (
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#0F5C3A]" />
@@ -189,23 +255,9 @@ export const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({
             )}
           </ul>
 
-          <button
-            onClick={() => onSubscribe(vendor.id)}
-            disabled={subscribeLoading}
-            className="w-full bg-[#0F5C3A] hover:bg-[#1A7A4F] disabled:opacity-60 text-white font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-2"
-          >
-            {subscribeLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Redirecting to checkout...</span>
-              </>
-            ) : (
-              <span>Subscribe – ${tier?.price_usd ?? 5} / month</span>
-            )}
-          </button>
-          <p className="text-[11px] text-gray-400 text-center">
-            Secure checkout powered by Stripe. Cancel anytime.
-          </p>
+          <div className="w-full bg-gray-100 text-gray-700 font-bold text-sm py-3 px-4 rounded-xl text-center border border-gray-200">
+            Online subscription checkout is temporarily unavailable. Contact Azam Market Online to activate this plan.
+          </div>
         </div>
       )}
     </div>

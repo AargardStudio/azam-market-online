@@ -155,7 +155,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ metrics, onNavigat
           <div className="space-y-3 text-xs">
             <div>
               <div className="flex justify-between font-semibold mb-1">
-                <span>Basic Tier (₨2,500/mo)</span>
+                <span>Starting Tier (₨1,500/mo)</span>
                 <span>{metrics.tierBreakdown.basic} vendors</span>
               </div>
               <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">

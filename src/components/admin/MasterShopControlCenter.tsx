@@ -479,7 +479,7 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
           >
             <option value="all">All Subscription Tiers</option>
             {tiers.map(t => (
-              <option key={t.id} value={t.id}>{t.display_name} (${t.price_usd.toLocaleString()})</option>
+              <option key={t.id} value={t.id}>{t.display_name} (Rs. {t.price_pkr.toLocaleString()})</option>
             ))}
           </select>
 
@@ -861,10 +861,10 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                           className="bg-emerald-50 text-[#0F5C3A] font-bold text-[11px] px-2 py-1 rounded-lg border border-emerald-200 cursor-pointer focus:outline-none"
                         >
                           {tiers
-                            .filter((t) => t.is_available || t.price_usd > 0 || vendor.tier_id === t.id)
+                            .filter((t) => t.is_available || t.price_pkr > 0 || vendor.tier_id === t.id)
                             .map((t) => (
                               <option key={t.id} value={t.id} disabled={!t.is_available && vendor.tier_id !== t.id}>
-                                {t.display_name} (${t.price_usd.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
+                                {t.display_name} (Rs. {t.price_pkr.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
                               </option>
                             ))}
                         </select>
@@ -2051,13 +2051,14 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                               )}
                             </div>
                             <div className="font-serif text-lg font-bold text-[#0F5C3A] mt-2">
-                              ${t.price_usd.toLocaleString()}
+                              Rs. {t.price_pkr.toLocaleString()}
                               <span className="text-[10px] text-gray-500 font-sans"> / mo</span>
                             </div>
 
                             <ul className="mt-3 space-y-1 text-[11px] text-gray-600">
                               <li>• Products: {t.max_products === -1 ? 'Unlimited' : t.max_products}</li>
                               <li>• Lookbooks: {t.max_catalogues === -1 ? 'Unlimited' : t.max_catalogues}</li>
+                              <li>• Storage: {t.max_storage_mb.toLocaleString()} MB</li>
                               <li>• Analytics: {t.has_analytics ? 'Enabled' : 'Disabled'}</li>
                               <li>• Verified Badge: {t.has_verified_badge ? 'Included' : 'No'}</li>
                             </ul>
@@ -2073,6 +2074,28 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                         </div>
                       );
                     })}
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
+                    <label className="font-bold text-gray-900 block">Vendor storage override (MB)</label>
+                    <p className="text-[11px] text-gray-500">
+                      Leave blank to use the selected tier allowance of {(currentInspector.tier?.max_storage_mb ?? 1024).toLocaleString()} MB.
+                    </p>
+                    <input
+                      type="number"
+                      min="1"
+                      step="100"
+                      defaultValue={currentInspector.storage_limit_override_mb ?? ''}
+                      placeholder="Use tier allowance"
+                      onBlur={async (event) => {
+                        const value = event.currentTarget.value.trim();
+                        await onUpdateVendor(currentInspector.id, {
+                          storage_limit_override_mb: value ? Math.max(1, Number(value)) : null,
+                        });
+                        notify(value ? `Storage allowance set to ${Number(value).toLocaleString()} MB` : 'Storage allowance reset to tier default');
+                      }}
+                      className="w-full max-w-xs border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F5C3A]/20 focus:border-[#0F5C3A]"
+                    />
                   </div>
                 </div>
               )}
@@ -2311,9 +2334,9 @@ export const MasterShopControlCenter: React.FC<MasterShopControlCenterProps> = (
                     className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold"
                   >
                     {tiers
-                      .filter(t => t.is_available || t.price_usd > 0)
+                      .filter(t => t.is_available || t.price_pkr > 0)
                       .map(t => (
-                        <option key={t.id} value={t.id} disabled={!t.is_available}>{t.display_name} (${t.price_usd.toLocaleString()}/mo){!t.is_available ? ' — Coming Soon' : ''}</option>
+                        <option key={t.id} value={t.id} disabled={!t.is_available}>{t.display_name} (Rs. {t.price_pkr.toLocaleString()}/mo){!t.is_available ? ' — Coming Soon' : ''}</option>
                       ))}
                   </select>
                 </div>

@@ -128,10 +128,10 @@ export const VendorTable: React.FC<VendorTableProps> = ({
               className="w-full min-h-[44px] bg-emerald-50 text-[#0F5C3A] font-bold text-xs px-3 rounded-lg border border-emerald-200"
             >
               {tiers
-                .filter((t) => t.is_available || t.price_usd > 0 || v.tier_id === t.id)
+                .filter((t) => t.is_available || t.price_pkr > 0 || v.tier_id === t.id)
                 .map((t) => (
                   <option key={t.id} value={t.id} disabled={!t.is_available && v.tier_id !== t.id}>
-                    {t.display_name} (${t.price_usd.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
+                    {t.display_name} (Rs. {t.price_pkr.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
                   </option>
                 ))}
             </select>
@@ -206,10 +206,10 @@ export const VendorTable: React.FC<VendorTableProps> = ({
                     className="bg-emerald-50 text-[#0F5C3A] font-bold text-[11px] px-2 py-1 rounded-lg border border-emerald-200 cursor-pointer focus:outline-none"
                   >
                     {tiers
-                      .filter((t) => t.is_available || t.price_usd > 0 || v.tier_id === t.id)
+                      .filter((t) => t.is_available || t.price_pkr > 0 || v.tier_id === t.id)
                       .map((t) => (
                         <option key={t.id} value={t.id} disabled={!t.is_available && v.tier_id !== t.id}>
-                          {t.display_name} (${t.price_usd.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
+                          {t.display_name} (Rs. {t.price_pkr.toLocaleString()}){!t.is_available ? ' — Coming Soon' : ''}
                         </option>
                       ))}
                   </select>

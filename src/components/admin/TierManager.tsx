@@ -27,16 +27,14 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
             </div>
             {!t.is_available && (
               <span className="inline-block bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                {t.price_usd === 0 ? 'Retired — no longer offered' : 'Coming Soon — not open for sign-up'}
+                {t.price_pkr === 0 ? 'Retired — no longer offered' : 'Coming Soon — not open for sign-up'}
               </span>
             )}
 
             <div className="font-serif text-3xl font-bold text-[#0F5C3A]">
-              {t.price_usd > 0 ? `$${t.price_usd.toLocaleString()}` : 'Free'} <span className="text-xs font-normal text-gray-500">{t.price_usd > 0 ? '/ mo' : ''}</span>
+              {t.price_pkr > 0 ? `Rs. ${t.price_pkr.toLocaleString()}` : 'Free'} <span className="text-xs font-normal text-gray-500">{t.price_pkr > 0 ? '/ mo' : ''}</span>
             </div>
-            {t.price_usd > 0 && (
-              <div className="text-[10px] text-gray-400">≈ ₨{t.price_pkr.toLocaleString()} PKR</div>
-            )}
+            {t.price_pkr > 0 && <div className="text-[10px] text-gray-400">PKR billing</div>}
 
             <ul className="space-y-2 text-xs text-gray-700 pt-2 border-t border-gray-100">
               <li className="flex items-center gap-2">
@@ -58,6 +56,10 @@ export const TierManager: React.FC<TierManagerProps> = ({ tiers }) => {
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#0F5C3A]" />
                 <span>Max Catalogue Size: <strong>{t.max_catalogue_size_mb}MB</strong></span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0F5C3A]" />
+                <span>Total Storage: <strong>{t.max_storage_mb.toLocaleString()}MB</strong></span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className={`w-4 h-4 ${t.has_analytics ? 'text-[#0F5C3A]' : 'text-gray-300'}`} />
