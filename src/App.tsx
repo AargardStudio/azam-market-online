@@ -29,6 +29,7 @@ import { SubscriptionUsage } from './components/vendor/SubscriptionUsage';
 import { AdminSidebar } from './components/admin/AdminSidebar';
 import { AdminOverview } from './components/admin/AdminOverview';
 import { ApiIntegrationsCenter } from './components/admin/ApiIntegrationsCenter';
+import { SiteNotice } from './components/public/SiteNotice';
 import { VendorTable } from './components/admin/VendorTable';
 import { OnboardForm } from './components/admin/OnboardForm';
 import { PendingQueue } from './components/admin/PendingQueue';
@@ -1264,6 +1265,7 @@ function AppInner() {
             market={currentView === 'directory' ? selectedMarketDetails : undefined}
             resultCount={filteredDirectoryVendors.length}
           />
+          <SiteNotice />
           <Navbar
             markets={markets}
             currentMarket={currentMarket}
